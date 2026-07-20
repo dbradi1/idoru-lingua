@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/logo.png" width="200" height="200" alt="Idoru Lingua"/>
+</p>
+
 # Idoru Lingua — Italian Journey
 
 A language learning system built on spaced repetition, designed around a journey through Italian cities. Telegram-native interaction, Mission Control dashboard, grounded in real memory science.
