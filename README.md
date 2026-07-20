@@ -133,10 +133,9 @@ A language learning system built on spaced repetition, designed around a journey
 
 ## Still To Decide
 
-- [x] **Content/Curriculum** — Anki deck import (travel deck + frequency words), 6 card types (vocab, phrases, grammar, pronunciation, production, conversation), progressive volume, seeded + dynamic generation
 - [ ] **Tech Stack** — what we build the engine in (Python? FastAPI? How does the FSRS library integrate?)
-- [ ] **Integration with Idoru infra** — Mission Control page design, cron jobs, Telegram bot flow
 - [ ] **City map** — which cities, in what order, what language milestones each represents
+- [ ] **Integration with Idoru infra** — Mission Control page design, cron jobs, Telegram bot flow
 ### 9. Content Source: Anki Decks ✅
 **Decision:** Start with "Italian Travel and Small Talk for Beginners" (200 cards, audio), layer in top 500 frequency words from 5000+ deck.
 
