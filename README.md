@@ -77,6 +77,7 @@ A language learning system built on spaced repetition, designed around a journey
 - Multiple choice for quick recognition drills (keeps API cost down)
 - Voice answers transcribed via local Whisper, compared against expected answer
 - Pronunciation scoring: v1 uses transcription matching; v2 could add phoneme-level model (Azure/Google Speech)
+- **TTS voice for Italian reference audio:** OpenAI `nova` (gpt-4o-mini-tts) — selected by Drew after sampling Microsoft Elsa (too robotic) and default OpenAI alloy. Nova has the most natural Italian pronunciation.
 
 ### 4. Voice Input Handling: Card Context + Explicit Trigger ✅
 **Decision:** Card context determines intent, with explicit trigger as fallback.
@@ -132,8 +133,40 @@ A language learning system built on spaced repetition, designed around a journey
 
 ## Still To Decide
 
-- [ ] **Content/Curriculum** — what vocabulary and grammar per city, sourced from where
+- [x] **Content/Curriculum** — Anki deck import (travel deck + frequency words), 6 card types (vocab, phrases, grammar, pronunciation, production, conversation), progressive volume, seeded + dynamic generation
 - [ ] **Tech Stack** — what we build the engine in (Python? FastAPI? How does the FSRS library integrate?)
 - [ ] **Integration with Idoru infra** — Mission Control page design, cron jobs, Telegram bot flow
 - [ ] **City map** — which cities, in what order, what language milestones each represents
-- [ ] **Initial content seeding** — how do we populate the first set of cards
+### 9. Content Source: Anki Decks ✅
+**Decision:** Start with "Italian Travel and Small Talk for Beginners" (200 cards, audio), layer in top 500 frequency words from 5000+ deck.
+
+**Details:**
+- Anki decks are SQLite under the hood — extract and import into lingua.db
+- Evaluate travel deck first, filter out useless vocab
+- Frequency words provide core vocabulary foundation
+- Total ~700 words to start (travel phrases + core vocab)
+
+### 10. Card Types: 6 Types ✅
+**Decision:** Vocabulary, Phrases, Grammar rules, Pronunciation, Production, Conversation.
+
+**Card types:**
+- **Vocabulary** — MC + typing (recognition + recall)
+- **Phrases** — typing (produce the Italian)
+- **Grammar rules** — sentence completion
+- **Pronunciation** — see text → speak it → graded via Whisper transcription matching (replaces audio recognition — Drew doesn't need to write Italian)
+- **Production** — situation in English → produce Italian (typed or spoken)
+- **Conversation** — multi-turn dialogue (LLM-judged)
+
+### 11. Card Volume: Progressive ✅
+**Decision:** Lean early cities, denser later.
+
+- Roma: ~60 cards (4 clusters × 15)
+- Later cities: up to 120+ cards
+- Total ~800-1000 cards across 8-10 cities
+
+### 12. Content Generation: Seeded + Dynamic ✅
+**Decision:** Bake Roma and Firenze fully before launch. Generate remaining cities dynamically as Drew approaches them.
+
+- Allows tuning difficulty based on actual performance
+- Prevents project from stalling on content creation
+- First 2 cities are fully real at launch
