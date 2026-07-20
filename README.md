@@ -134,7 +134,25 @@ A language learning system built on spaced repetition, designed around a journey
 ## Still To Decide
 
 - [ ] **Tech Stack** — what we build the engine in (Python? FastAPI? How does the FSRS library integrate?)
-- [ ] **City map** — which cities, in what order, what language milestones each represents
+### 13. City Map: 8 Cities (CEFR A1 → B2) ✅
+**Decision:** 8 cities, 46 skill clusters, ~840 cards. Progressive volume. Geographic spiral through Italy.
+
+**Route:**
+1. 🏛️ **Roma** (A1.1 — Arrival) — greetings, numbers/time, café ordering, directions. ~60 cards, 4 clusters. Badge: "Found your feet in the Eternal City"
+2. 🌸 **Firenze** (A1.2 — Settling In) — restaurant/food vocab, shopping, present tense regular verbs, adjectives. ~80 cards, 5 clusters. Badge: "Dined like a Florentine"
+3. 🚂 **Bologna** (A2.1 — Getting Around) — train/travel, passato prossimo, daily life, making plans. ~90 cards, 5 clusters. Badge: "Navigated the station like a local"
+4. 🌊 **Venezia** (A2.2 — Conversations Begin) — opinions, weather, family, imperfetto, requests. ~100 cards, 6 clusters. Badge: "Made small talk on a gondola"
+5. 🍷 **Verona** (B1.1 — Stories & Romance) — passato remoto, emotions, conditional, storytelling. ~110 cards, 6 clusters. Badge: "Told a story worth hearing"
+6. 🏙️ **Napoli** (B1.2 — Street Italian) — formal/informal register, imperative, dialect awareness, idioms, arguing. ~120 cards, 6 clusters. Badge: "Held your own in a Naples piazza"
+7. 🏖️ **Amalfi** (B2.1 — Fluency Building) — subjunctive, hypotheticals, reading comprehension, abstract topics. ~130 cards, 7 clusters. Badge: "Discussed art on a cliffside"
+8. 🏔️ **Torino** (B2.2 — Mastery) — advanced grammar, formal writing, professional Italian, cultural fluency. ~150 cards, 7 clusters. Badge: "Passed for a Torinese"
+
+### 14. Pronunciation: Proactive Audio on Every Card ✅
+**Decision:** OpenAI nova reads the Italian side of every card proactively. Drew hears correct pronunciation on every exposure — not just pronunciation-specific cards.
+
+- Vocab/phrase cards: audio attached automatically
+- Pronunciation cards: reference audio sent before Drew attempts
+- Reinforces correct pronunciation muscle memory on every interaction
 - [ ] **Integration with Idoru infra** — Mission Control page design, cron jobs, Telegram bot flow
 ### 9. Content Source: Anki Decks ✅
 **Decision:** Start with "Italian Travel and Small Talk for Beginners" (200 cards, audio), layer in top 500 frequency words from 5000+ deck.
