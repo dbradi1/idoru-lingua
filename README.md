@@ -241,10 +241,7 @@ A language learning system built on spaced repetition, designed around a journey
 - **Grammar rules** — sentence completion
 - **Pronunciation** — see text → speak it → graded via Azure Pronunciation Assessment (phoneme-level scoring for it-IT). Drew gets per-sound accuracy feedback, not just pass/fail.
 - **Production** — situation in English → produce Italian (typed or spoken)
-- **Conversation** — multi-turn dialogue (LLM-judged) — **deferred to v1.1**
-
-### v1.1 Roadmap
-- **Conversation cards** — 3-5 turn scenarios with defined roles (café, restaurant, station). Grade on vocabulary, grammar, and task completion. Off-script is fine if the Italian is correct. Requires the Lingua sub-agent to roleplay in character. Conversation is the capstone skill — needs vocab and grammar foundation first.
+- **Conversation** — multi-turn dialogue (LLM-judged) — **deferred to v1.1** (tracked in <https://github.com/dbradi1/idoru-lingua/issues/1>)
 
 ### 11. Card Volume: Progressive ✅
 **Decision:** Lean early cities, denser later.
