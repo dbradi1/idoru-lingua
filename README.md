@@ -284,3 +284,51 @@ A language learning system built on spaced repetition, designed around a journey
 - Allows tuning difficulty based on actual performance
 - Prevents project from stalling on content creation
 - First 2 cities are fully real at launch
+
+### 18. No Reverse Cards ✅
+**Decision:** All cards are production-forward (English → Italian). No reverse cards (Italian → English).
+
+**Rationale:** Drew's goal is producing Italian, not translating it back to English. Recognition practice (seeing Italian and identifying it) happens naturally during pronunciation and production cards. Adding reverse cards doubles the FSRS load without serving the learning goal.
+
+### 19. Leech Handling: Flag for Re-Learning ✅
+**Decision:** Cards that keep failing (FSRS leeches) are flagged and pulled into a re-learning context, not auto-suspended.
+
+**Flow:**
+- FSRS detects a card has been failed N times (configurable threshold, default 5)
+- Card is flagged as a leech and pulled from normal rotation
+- Presented in re-learning mode: answer shown first, then tested again
+- Once passed in re-learning, card returns to normal rotation with reset stability
+- Lingua mentions leeches in session summary: "2 cards need extra work — they're in your re-learning queue"
+
+### 20. Undo Support ✅
+**Decision:** Drew can undo his last rating if he accidentally marks a card wrong.
+
+**Trigger:** `annulla` (Italian for undo) or `undo`
+- Reverts FSRS state to the previous value for the last graded card
+- Only works for the most recent card in the current session
+- Only one level of undo — can't undo multiple cards back
+
+### 21. Skip Protection: Daily Review Cap ✅
+**Decision:** Cap review sessions at a configurable number of cards (default 20) to handle gaps gracefully.
+
+**Behavior after a gap (travel, sickness, etc.):**
+- FSRS schedules all due cards naturally — no artificial penalty for missing days
+- Session capped at 20 cards (configurable): "Welcome back — 23 cards due, let's do 20 today."
+- Remaining cards stay due and get picked up next session
+- No guilt messaging, no streak counter, no "you missed yesterday"
+- Cap prevents the 147-card cliff after a week away
+
+### 22. /explain Command ✅
+**Decision:** `spiega` (Italian for explain) or `/explain` pulls up a concise grammar note for the current card's concept.
+
+**Examples:**
+- Card about *passato prossimo* → `/explain` gives 2-3 line refresher on when to use it vs *imperfetto*
+- Card about *gli* sounds → `/explain` covers the palatal lateral approximant (how to actually make the sound)
+- Card about *formal vs informal* → `/explain` summarizes when to use *Lei* vs *tu*
+
+**Implementation:** Grammar notes stored alongside card metadata. No LLM call needed — pre-written explanations cached in the DB.
+
+### 23. No Placement Test ✅
+**Decision:** Skip placement test entirely. Start at Roma A1.1.
+
+**Rationale:** Drew is a blank slate in Italian. Roma A1.1 is the right starting point. Placement tests are for learners with existing knowledge — not applicable here.
