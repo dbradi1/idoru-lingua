@@ -194,9 +194,53 @@ A language learning system built on spaced repetition, designed around a journey
 
 ---
 
-## Still To Decide
+### 24. Engine Architecture: Headless Python Library ✅
+**Decision:** Build the core engine as a headless Python library (`lingua_engine.py`) with a clean API. Both the Lingua sub-agent and Mission Control dashboard call the same library — no duplicated logic.
 
-- [ ] **Tech Stack** — Python headless library (`lingua_engine.py`) with clean API; Flask blueprint in Mission Control for dashboard
+**Library: `lingua_engine.py`**
+
+Core API:
+```python
+# Session management
+get_due_cards(user_id, limit=20) → list[Card]
+submit_answer(card_id, answer, mode) → Grade
+undo_last_rating(user_id) → bool
+
+# Progression
+get_city_progress(user_id) → dict
+get_cluster_strength(city_id) → dict
+check_progression_gate(user_id, city_id) → dict  # {can_advance: bool, blockers: list}
+
+# Card management
+get_card_explanation(card_id) → str  # grammar note
+flag_leech(card_id) → bool  # move to re-learning queue
+get_relearning_queue(user_id) → list[Card]
+
+# Validation
+validate_import(deck_path) → ImportReport  # one-time on deck load
+prewarm_session(user_id) → SessionBatch  # daily, before morning push
+
+# TTS (Azure Luna)
+generate_audio(text) → path  # cached .ogg file
+get_cached_audio(card_id) → path | None
+
+# Pronunciation (Azure Assessment)
+assess_pronunciation(audio_path, reference_text) → PronunciationScore  # phoneme-level
+```
+
+**Consumers:**
+- **Lingua sub-agent** (Telegram): calls `get_due_cards()`, `submit_answer()`, `assess_pronunciation()`, etc. Handles the conversational flow.
+- **Mission Control** (Flask blueprint): calls `get_city_progress()`, `get_cluster_strength()`, renders dashboard.
+- **Morning cron**: calls `prewarm_session()`, then sends the push message.
+- **Import script**: calls `validate_import()` when loading Anki decks.
+
+**Tech stack:**
+- Python 3.12+ (matches existing Idoru infra)
+- `fsrs` library (PyPI) for spaced repetition
+- `azure-cognitiveservices-speech` for TTS + pronunciation assessment
+- SQLite with WAL mode (`lingua.db`)
+- Flask blueprint in Mission Control for dashboard (reuses existing auth, styling, base templates)
+- Whisper (local, existing) for free-form answer transcription
 - [ ] **Dedicated Lingua sub-agent** — create `lingua` agent in OpenClaw config with model override (`ollama/deepseek-v4-pro`). Handles Lingua group chat autonomously. Needed for v1 grading (inline API calls) and v1.1 conversation cards (multi-turn dialogue with persona).
 - [ ] **Azure Speech resource** — create one in Azure portal, add key to `/home/drew/.env`
 - [ ] **Telegram Lingua group chat** — Drew to create dedicated group chat for all Lingua interaction
