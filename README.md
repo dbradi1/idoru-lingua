@@ -69,15 +69,16 @@ A language learning system built on spaced repetition, designed around a journey
 - Real-time difficulty manipulation (FSRS handles this naturally)
 - ML-based personalization engine (overkill for v1)
 
-### 3. Grading: Mixed (LLM + Multiple Choice) ✅
-**Decision:** LLM judging for free-form answers, multiple choice for quick vocab, transcription matching for voice.
+### 3. Grading: Mixed (LLM + Multiple Choice + Azure Phoneme Scoring) ✅
+**Decision:** LLM judging for free-form answers, multiple choice for quick vocab, Azure Pronunciation Assessment for voice.
 
 **Details:**
-- Free-form text/voice answers → LLM grades correctness + provides feedback
+- Free-form text/voice answers → LLM grades correctness + provides feedback (Gemini 2.0 Flash for cost efficiency)
 - Multiple choice for quick recognition drills (keeps API cost down)
-- Voice answers transcribed via local Whisper, compared against expected answer
-- Pronunciation scoring: v1 uses transcription matching; v2 could add phoneme-level model (Azure/Google Speech)
-- **TTS voice for Italian reference audio:** OpenAI `nova` (gpt-4o-mini-tts) — selected by Drew after sampling Microsoft Elsa (too robotic) and default OpenAI alloy. Nova has the most natural Italian pronunciation.
+- Voice answers transcribed via local Whisper for free-form text extraction
+- **Pronunciation scoring:** Azure Pronunciation Assessment (it-IT) — phoneme-level accuracy scores, not just transcription matching. Returns per-sound scores: "your /gli/ was 45% accurate." Genuinely useful feedback, not just a gatekeeper.
+- **TTS voice for Italian reference audio:** Azure Speech `it-IT-LunaNeural` — selected by Drew after sampling 42 Azure Italian voices via Verbatik gallery. Italian-native neural voice, not an English model attempting Italian.
+- **Bundled provider:** Azure Speech handles both TTS (reference audio generation) and STT (pronunciation assessment) — one SDK, one auth, one provider for all voice features.
 
 ### 4. Voice Input Handling: Card Context + Explicit Trigger ✅
 **Decision:** Card context determines intent, with explicit trigger as fallback.
@@ -131,9 +132,35 @@ A language learning system built on spaced repetition, designed around a journey
 
 ---
 
+### 15. Voice Provider: Azure Speech (TTS + Pronunciation Assessment) ✅
+**Decision:** Bundle both voice features under Azure Speech — one provider, one SDK, one auth.
+
+**TTS (reference audio generation):**
+- Voice: `it-IT-LunaNeural` — Italian-native neural voice, selected by Drew
+- Pricing: $16/million characters (prebuilt neural). Free tier: 500K chars/month (~83K words)
+- Roma card set (~60 cards × ~15 chars) = ~900 characters. Regenerable 500+ times on free tier alone.
+- Audio cached as `.ogg` files — generate once, reuse forever
+
+**Pronunciation Assessment (STT scoring):**
+- Italian (it-IT) — phoneme-level accuracy scores
+- $0.66/hour for short audio (<30s), prorated per second. ~$0.0005 per word check.
+- Free tier: 5 hours/month included
+- 30-second max per request — perfect for single word/phrase cards
+
+**What this replaces:**
+- TTS: OpenAI nova → Azure Luna (Italian-native, better Italian pronunciation)
+- Pronunciation: Whisper transcription matching → Azure phoneme scoring (actual per-sound accuracy, not "did we hear the right word")
+- Whisper (local) still used for free-form answer transcription
+
+**Auth:** Single Azure Speech resource. Env vars: `AZURE_SPEECH_KEY` + `AZURE_SPEECH_REGION`
+
+---
+
 ## Still To Decide
 
-- [ ] **Tech Stack** — what we build the engine in (Python? FastAPI? How does the FSRS library integrate?)
+- [ ] **Tech Stack** — Python headless library (`lingua_engine.py`) with clean API; Flask blueprint in Mission Control for dashboard; dedicated OpenClaw agent (`lingua`) for Telegram interaction
+- [ ] **Azure Speech resource** — create one in Azure portal, add key to `/home/drew/.env`
+- [ ] **Integration with Idoru infra** — Mission Control page design, cron jobs, Telegram bot flow
 ### 13. City Map: 8 Cities (CEFR A1 → B2) ✅
 **Decision:** 8 cities, 46 skill clusters, ~840 cards. Progressive volume. Geographic spiral through Italy.
 
@@ -148,11 +175,13 @@ A language learning system built on spaced repetition, designed around a journey
 8. 🏔️ **Torino** (B2.2 — Mastery) — advanced grammar, formal writing, professional Italian, cultural fluency. ~150 cards, 7 clusters. Badge: "Passed for a Torinese"
 
 ### 14. Pronunciation: Proactive Audio on Every Card ✅
-**Decision:** OpenAI nova reads the Italian side of every card proactively. Drew hears correct pronunciation on every exposure — not just pronunciation-specific cards.
+**Decision:** Azure Speech `it-IT-LunaNeural` reads the Italian side of every card proactively. Drew hears correct pronunciation on every exposure — not just pronunciation-specific cards.
 
 - Vocab/phrase cards: audio attached automatically
-- Pronunciation cards: reference audio sent before Drew attempts
+- Pronunciation cards: reference audio sent before Drew attempts, then Azure phoneme scoring grades the attempt
 - Reinforces correct pronunciation muscle memory on every interaction
+- TTS audio cached as `.ogg` files — generate once per card, reuse forever. Cost effectively zero.
+- **Azure Speech resource:** single key (`AZURE_SPEECH_KEY` + `AZURE_SPEECH_REGION`) covers both TTS and pronunciation assessment
 - [ ] **Integration with Idoru infra** — Mission Control page design, cron jobs, Telegram bot flow
 ### 9. Content Source: Anki Decks ✅
 **Decision:** Start with "Italian Travel and Small Talk for Beginners" (200 cards, audio), layer in top 500 frequency words from 5000+ deck.
@@ -170,7 +199,7 @@ A language learning system built on spaced repetition, designed around a journey
 - **Vocabulary** — MC + typing (recognition + recall)
 - **Phrases** — typing (produce the Italian)
 - **Grammar rules** — sentence completion
-- **Pronunciation** — see text → speak it → graded via Whisper transcription matching (replaces audio recognition — Drew doesn't need to write Italian)
+- **Pronunciation** — see text → speak it → graded via Azure Pronunciation Assessment (phoneme-level scoring for it-IT). Drew gets per-sound accuracy feedback, not just pass/fail.
 - **Production** — situation in English → produce Italian (typed or spoken)
 - **Conversation** — multi-turn dialogue (LLM-judged)
 
