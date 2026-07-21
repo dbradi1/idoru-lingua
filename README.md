@@ -80,13 +80,30 @@ A language learning system built on spaced repetition, designed around a journey
 - **TTS voice for Italian reference audio:** Azure Speech `it-IT-LunaNeural` — selected by Drew after sampling 42 Azure Italian voices via Verbatik gallery. Italian-native neural voice, not an English model attempting Italian.
 - **Bundled provider:** Azure Speech handles both TTS (reference audio generation) and STT (pronunciation assessment) — one SDK, one auth, one provider for all voice features.
 
-### 4. Voice Input Handling: Card Context + Explicit Trigger ✅
-**Decision:** Card context determines intent, with explicit trigger as fallback.
+### 4. Telegram Flow: Dedicated Group Chat + Sequential Review ✅
+**Decision:** All Lingua interaction happens in a dedicated Telegram group chat. One card at a time, interactive sequential flow.
 
-**Flow:**
-- If I just sent you a card and you respond (voice or text) within 5 min → treated as answer
-- If no active card → say "quiz me" or "Italian time" to start a session
-- Language detection (Italian vs English) considered but rejected as fragile
+**Dedicated group chat:**
+- Separate Telegram group created specifically for Lingua
+- Eliminates mixed-conversation ambiguity — every message in this chat is Lingua-related
+- If Italian is requested in the main chat → redirect to Lingua group
+
+**Session flow:**
+1. Morning push (cron): "☕ N cards due — type *pronto* to start"
+2. `pronto` → send card 1 (with audio)
+3. Drew answers → grade, send feedback, immediately send card 2
+4. Repeat until queue empty or Drew says `basta`
+5. Session summary: "15 cards reviewed: 12 good, 2 hard, 1 again. Roma: 72% (+3%)"
+
+**Trigger words (Italian):**
+- `pronto` — start a review session
+- `basta` — stop mid-session
+- `quiz me` — on-demand session (same flow, any time)
+
+**State management:**
+- One `pending_card_id` + timestamp stored in session state
+- 10-minute timeout per card → marked "skipped" (not failed), goes back in queue
+- Only one card pending at a time — no batch ambiguity
 
 ### 5. Storage: SQLite (separate `lingua.db`) ✅
 **Decision:** Dedicated SQLite database file. Does not touch existing SQLite data.
