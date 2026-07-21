@@ -171,12 +171,29 @@ A language learning system built on spaced repetition, designed around a journey
 
 **Auth:** Single Azure Speech resource. Env vars: `AZURE_SPEECH_KEY` + `AZURE_SPEECH_REGION`
 
+### 16. LLM Grading: DeepSeek V4 Pro via Dedicated Lingua Agent ✅
+**Decision:** Dedicated OpenClaw sub-agent (`lingua`) with model override `ollama/deepseek-v4-pro` for answer grading.
+
+**Why a sub-agent, not inline calls:**
+- v1 grading is a function (API call), but v1.1 conversation cards need multi-turn dialogue with persona — a sub-agent handles both
+- Clean separation from main session — Lingua doesn't compete with Idoru's other work
+- Own context window — no polluting main session history with Italian grading
+- Model can be swapped independently (DeepSeek V4 Pro now, can change later without touching other agents)
+
+**Architecture:**
+- `lingua_engine.py` (headless library) handles FSRS, card state, Azure TTS/pronunciation, DB operations
+- Lingua sub-agent calls the engine library + handles Telegram flow in the Lingua group chat
+- Grading model: `ollama/deepseek-v4-pro` — cheaper and faster than GLM 5.2 for simple correctness checking
+- Main session (Idoru) redirects Italian requests to the Lingua group chat
+
 ---
 
 ## Still To Decide
 
-- [ ] **Tech Stack** — Python headless library (`lingua_engine.py`) with clean API; Flask blueprint in Mission Control for dashboard; dedicated OpenClaw agent (`lingua`) for Telegram interaction
+- [ ] **Tech Stack** — Python headless library (`lingua_engine.py`) with clean API; Flask blueprint in Mission Control for dashboard
+- [ ] **Dedicated Lingua sub-agent** — create `lingua` agent in OpenClaw config with model override (`ollama/deepseek-v4-pro`). Handles Lingua group chat autonomously. Needed for v1 grading (inline API calls) and v1.1 conversation cards (multi-turn dialogue with persona).
 - [ ] **Azure Speech resource** — create one in Azure portal, add key to `/home/drew/.env`
+- [ ] **Telegram Lingua group chat** — Drew to create dedicated group chat for all Lingua interaction
 - [ ] **Integration with Idoru infra** — Mission Control page design, cron jobs, Telegram bot flow
 ### 13. City Map: 8 Cities (CEFR A1 → B2) ✅
 **Decision:** 8 cities, 46 skill clusters, ~840 cards. Progressive volume. Geographic spiral through Italy.
