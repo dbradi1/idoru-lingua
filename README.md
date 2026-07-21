@@ -139,13 +139,19 @@ A language learning system built on spaced repetition, designed around a journey
 - Nudge when overdue items pile up
 - Review queue = FSRS due cards sorted by cluster weakness (weakest first)
 
-### 8. Progression: Mastery + Exploration ✅
-**Decision:** Move forward with gaps; badges reward depth.
+### 8. Progression: Three-Tier Gate Model ✅
+**Decision:** Three thresholds — a floor, a gate, and a badge. Prevents skipping skill areas while allowing forward progress with gaps.
 
 **Thresholds:**
-- **Explore next city:** current city clusters average ≥60%
-- **Mastered badge:** all clusters in a city hit ≥85%
-- Weak spots visible on the map but don't gate progression
+- **30% per cluster (floor):** Minimum engagement with every skill area. If any cluster is below 30%, the next city stays locked. Not mastery — just "you've tried this enough to have some retention."
+- **60% city average (gate):** Solid enough foundation to move forward without drowning. **Unlocks next city.**
+- **85% all clusters (badge):** Genuine mastery — you can actually use this stuff. **Unlocks mastered badge for the city.**
+
+**How weak clusters get fixed:**
+- FSRS keeps scheduling weak-cluster cards in the review queue
+- Review queue prioritizes weakest clusters first — the system naturally pushes you to fix gaps
+- No guilt-trip messaging — just "2 clusters below the bar — they're in your review queue"
+- Weak spots visible on the Mission Control map but don't block progress (as long as they're above 30%)
 
 ---
 
