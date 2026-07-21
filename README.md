@@ -232,6 +232,34 @@ A language learning system built on spaced repetition, designed around a journey
 - Frequency words provide core vocabulary foundation
 - Total ~700 words to start (travel phrases + core vocab)
 
+### 17. Card Validation: Import-Time + Daily Pre-Warm ✅
+**Decision:** Two-stage validation pipeline — one-time import validation and daily pre-warm before review sessions.
+
+**Stage 1: Import-time validation (one-time, on deck load)**
+- Check for duplicate cards (same Italian text)
+- Check for missing fields (no Italian text, no English text, no card type)
+- Check for encoding issues (garbled characters, mojibake)
+- Check Anki deck audio file integrity
+- Flag suspicious entries for manual review (don't auto-import garbage)
+- Log: "Imported N cards, flagged M for review, skipped K duplicates"
+
+**Stage 2: Daily pre-warm (before review session)**
+- Pull due cards from FSRS for the day
+- Verify each card's data is intact (no DB corruption since import)
+- Verify cached TTS audio files exist and aren't corrupted
+- Generate any missing TTS audio via Azure Luna (before session starts)
+- Verify Azure pronunciation reference text is present for pronunciation cards
+- If any card fails validation → skip it, log it, don't send broken cards to Drew
+- All audio pre-cached and ready before Drew says `pronto` — zero latency during review
+
+**Flow:**
+1. Morning cron fires → pull due cards from FSRS
+2. Run validation pass on the batch
+3. Pre-generate any missing TTS audio
+4. Queue validated cards for the session
+5. Send morning push: "☕ N cards due — type *pronto*"
+6. Drew says `pronto` → cards ready, audio cached, zero wait
+
 ### 10. Card Types: 6 Types ✅
 **Decision:** Vocabulary, Phrases, Grammar rules, Pronunciation, Production, Conversation.
 
