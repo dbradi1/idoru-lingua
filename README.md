@@ -241,10 +241,13 @@ assess_pronunciation(audio_path, reference_text) → PronunciationScore  # phone
 - SQLite with WAL mode (`lingua.db`)
 - Flask blueprint in Mission Control for dashboard (reuses existing auth, styling, base templates)
 - Whisper (local, existing) for free-form answer transcription
-- [ ] **Dedicated Lingua sub-agent** — create `lingua` agent in OpenClaw config with model override (`ollama/deepseek-v4-pro`). Handles Lingua group chat autonomously. Needed for v1 grading (inline API calls) and v1.1 conversation cards (multi-turn dialogue with persona).
-- [ ] **Azure Speech resource** — create one in Azure portal, add key to `/home/drew/.env`
-- [ ] **Telegram Lingua group chat** — Drew to create dedicated group chat for all Lingua interaction
-- [ ] **Integration with Idoru infra** — Mission Control page design, cron jobs, Telegram bot flow
+
+## Open To-Do Items (tracked in GitHub Issues)
+- **#2** Azure Speech resource creation (blocked on Drew's Azure login)
+- **#3** Lingua sub-agent setup in OpenClaw config
+- **Drew to-do:** Create Telegram Lingua group chat
+- **Drew to-do:** Review Lingua SOUL.md draft (emailed)
+- **Remaining:** Mission Control page design, cron jobs, Telegram bot flow
 ### 13. City Map: 8 Cities (CEFR A1 → B2) ✅
 **Decision:** 8 cities, 46 skill clusters, ~840 cards. Progressive volume. Geographic spiral through Italy.
 
