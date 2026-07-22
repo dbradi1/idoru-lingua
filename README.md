@@ -249,7 +249,7 @@ assess_pronunciation(audio_path, reference_text) → PronunciationScore  # phone
 - **Drew to-do:** Create Telegram Lingua group chat (for notification channel)
 - **Drew to-do:** Review Lingua SOUL.md draft (emailed)
 - **Drew to-do:** Install Xcode (Issue #4)
-- **Remaining:** iOS app screen design, API layer design, Anki import process, Roma/Firenze content creation
+- **Remaining:** API layer design, Anki import process, Roma/Firenze content creation, iOS app build
 ### 13. City Map: 8 Cities (CEFR A1 → B2) ✅
 **Decision:** 8 cities, 46 skill clusters, ~840 cards. Progressive volume. Geographic spiral through Italy.
 
@@ -605,3 +605,158 @@ A visual mockup of this design is saved at [`assets/mission-control-mockup.png`]
 - **Decision #6** (Delivery): Updated delivery model — iOS app (primary) + Telegram (notifications) + Mission Control (dashboard). No separate standalone UI needed — the app IS the standalone UI.
 - **Decision #7** (Scheduling): Morning push now says "open the app" instead of "type pronto." On-demand quizzes happen in-app, not via Telegram `quiz me`.
 - **Decision #25** (Cron Pipeline): Push message format changes from "type *pronto*" to "open the app to start." Pre-warm pipeline unchanged. Failure notifications still go to Telegram (that's the right channel for system alerts).
+
+---
+
+### 27. iOS App Design: Screens, Navigation & Visual Identity ✅
+
+**Decision:** Tab-based SwiftUI app with 4 tabs, warm Italian aesthetic, 5 card type layouts, gesture-based rating.
+
+#### Visual Identity: Warm Italian
+
+A daily ritual aesthetic — feels like opening a café journal in a piazza, not a control room.
+
+**Color palette:**
+- Background: Cream/parchment (#FAF3E7 in light, #1C1714 in dark)
+- Primary accent: Terracotta (#C65D3A) — buttons, progress, active states
+- Secondary accent: Mediterranean blue (#2D6A8E) — links, secondary actions, stats
+- Success: Olive green (#6B8E4E) — correct answers, mastered clusters
+- Warning: Amber (#D4A02E) — hard ratings, at-risk clusters
+- Error: Brick red (#A03B2E) — wrong answers, leeches
+- Text: Deep brown (#2D2014 in light, #E8DCC8 in dark)
+- Cards/surfaces: Warm white (#FFFFFF in light, #2A2118 in dark) with subtle warm shadow
+
+**Typography:**
+- Headlines: Rounded, warm serif (e.g., system rounded or Georgia) — feels handwritten, personal
+- Body: System sans (San Francisco on iOS) — clean, readable
+- Italian text: Italic serif for Italian phrases — reinforces "this is the language you're learning"
+- Numbers/stats: Monospaced for alignment
+
+**Texture & feel:**
+- Subtle paper-grain texture on backgrounds (very low opacity)
+- Cards have soft shadows, rounded corners (16pt radius)
+- Smooth spring animations on card transitions, not linear fades
+- No neon, no glow effects — this is warm and tactile
+
+#### Navigation Structure
+
+4-tab structure (bottom tab bar):
+
+**Tab 1 — Home (Review)**
+Default launch screen. The daily driver.
+- Greeting header: "Buongiorno, Drew" with current city name and flag emoji
+- Due cards count: Large number — "8 cards ready" with prominent terracotta "Pronto →" button
+- Memory Strength ring: Circular gauge showing overall strength across all cities
+- Current city card: City name, progress bar, cluster breakdown mini-bars, gate status badge
+- Quick stats: Last session summary (if any), total reviews count — no streaks, no XP
+- When session active → transitions to full-screen Card View
+- When session ends → shows Session Summary, then returns to Home
+
+**Tab 2 — Journey (Italy Map)**
+The visual progression page — the adventure screen.
+- Interactive Italy map: Touch-optimized SVG. Pinch to zoom, tap a city to select.
+- Route visualization: Warm terracotta path between unlocked cities, dashed gray to locked cities
+- City nodes: Current city (pulsing terracotta), completed (olive green ring), locked (gray, dimmed)
+- City detail sheet (slides up from bottom on tap):
+  - City name, CEFR level, badge name
+  - Memory Strength gauge (city average)
+  - Skill clusters with individual strength bars (olive/blue/amber/brick color-coded)
+  - Gate status: "✓ Gate reached — next city unlocked" or "× 2 clusters below 30%"
+  - Card count and type breakdown for this city
+- This is the screen that makes it feel like an adventure, not a flashcard app
+
+**Tab 3 — Stats (Progress)**
+The data dashboard.
+- Retention curve: FSRS retrievability over time (30/90/all-time toggle)
+- Review history: Bar chart of cards reviewed per day
+- Cluster strength grid: All clusters across all cities, color-coded heat grid
+- Leech queue: Flagged cards count with "Review Leeches" button
+- Card type breakdown: Distribution chart (vocab/phrases/grammar/pronunciation/production)
+- Achievement timeline: Badges earned, cities unlocked, milestones reached
+
+**Tab 4 — Practice (On-Demand)**
+Quick access to study outside scheduled reviews.
+- Quiz Me: Start on-demand session from due cards (same card flow as morning session)
+- Leech Review: Jump into re-learning queue directly
+- Free Practice: Browse cards by city/cluster without FSRS grading (casual review)
+- Pronunciation Drill: Practice pronunciation cards specifically with Azure scoring
+- Settings: API server URL, audio preferences, daily review cap, notification schedule, dark/light mode toggle
+
+#### Card View (Full-Screen, Launched from Home or Practice)
+
+Core interaction screen — card-by-card learning flow.
+
+**Universal card chrome:**
+- Top bar: City name + cluster name + card counter ("3 of 8") + close button (×)
+- Card body: Varies by type (see below)
+- Bottom: Action area (answer input, rating buttons, or audio recorder)
+- Spiega button: Always visible (small icon, bottom-left) — tap for grammar note overlay
+- Annulla button: Appears briefly after rating — undo last card
+
+**Card type layouts:**
+
+1. **Vocabulary card**
+   - English word/phrase displayed prominently (serif italic for emphasis)
+   - Audio button (speaker icon — tap to hear Azure Luna Italian pronunciation)
+   - 4 multiple-choice Italian options as tappable rounded cards
+   - Tap correct → olive green flash + brief feedback → next card
+   - Tap wrong → brick red flash + correct answer shown with explanation → next card
+
+2. **Phrase card**
+   - English phrase displayed
+   - Audio button for reference pronunciation
+   - Text field for typing Italian answer (auto-correct disabled)
+   - Submit button → LLM grades via API → feedback with corrections
+
+3. **Grammar card**
+   - Sentence with blank, context hint (tense, conjugation type)
+   - Audio button for full correct sentence
+   - Multiple choice or text input depending on complexity
+
+4. **Pronunciation card**
+   - Italian text displayed (large, serif italic)
+   - "Tap to hear" reference audio button
+   - Microphone button — hold to record, release to submit
+   - Live waveform visualization while recording
+   - After scoring: phoneme breakdown appears as horizontal bars per sound
+   - Per-sound accuracy: "gli: 45% · r: 92% · o: 88%" with color-coded bars
+   - Overall pronunciation score with color indicator (olive/amber/brick)
+
+5. **Production card**
+   - Situation described in English
+   - Toggle: ✍️ type or 🎤 speak answer
+   - If speak: records → Whisper transcribes (server-side) → LLM grades
+   - Feedback with corrections and natural alternatives
+
+**Rating interaction (after answering):**
+- Multiple choice cards: auto-graded, shows result with color animation, "Next →" button
+- Typed/spoken cards: self-rating via gesture:
+  - Swipe left: Again (brick red flash)
+  - Swipe up: Hard (amber flash)
+  - Swipe right: Good (olive green flash)
+  - Double-tap: Easy (Mediterranean blue flash)
+- Next card slides in with spring animation after rating
+- If last card → transitions to Session Summary
+
+**Session Summary screen:**
+- Cards reviewed: count with breakdown (✓ good / ⬤ hard / ✗ again)
+- Memory Strength change: "Roma: 72% → 75% (+3%)" with arrow
+- Time taken (e.g., "4m 20s")
+- Leeches detected (if any): "2 cards need extra work — they're in your re-learning queue"
+- Cluster movement: any clusters that changed color tier
+- "Done" button returns to Home (which now shows updated stats)
+
+#### Onboarding (First Launch)
+- Welcome screen: "Benvenuto a Idoru Lingua" with logo and brief intro
+- Server setup: Enter API URL (defaults to Tailscale address of ThinkPad)
+- No placement test (per Decision #23) — starts at Roma A1.1
+- Brief tour of the 4 tabs (3-4 slides, skippable)
+- Push notification permission request
+- Straight to Home screen with 0 cards due (nothing imported yet)
+
+#### Dark Mode
+- Warm dark palette (not black — warm dark brown #1C1714 background)
+- Terracotta stays as primary accent, slightly brightened for contrast
+- Card surfaces: #2A2118 (warm dark, not cold gray)
+- Text: #E8DCC8 (warm cream)
+- Automatic switch with system setting, manual override in Settings
