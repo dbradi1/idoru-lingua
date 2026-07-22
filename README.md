@@ -379,3 +379,68 @@ assess_pronunciation(audio_path, reference_text) → PronunciationScore  # phone
 **Decision:** Skip placement test entirely. Start at Roma A1.1.
 
 **Rationale:** Drew is a blank slate in Italian. Roma A1.1 is the right starting point. Placement tests are for learners with existing knowledge — not applicable here.
+
+---
+
+## Mission Control Page Design ✅
+
+**Decision:** Dedicated Lingua page in Mission Control with map-dominant layout, matching the existing cyberpunk control-room aesthetic.
+
+**Aesthetic:** Consistent with the rest of Mission Control — dark background (#0a0e1a), blue-purple accents (#7c3aed / #a78bfa), subtle grid overlay. "Mission planning hologram" energy, not Duolingo.
+
+**Layout: map-dominant, data panels below.**
+
+### Hero: Italy Route Map
+- Full-width SVG map of Italy across the top — the first thing you see when the page loads
+- 8 cities plotted on the route (Roma → Firenze → Bologna → Venezia → Verona → Napoli → Amalfi → Torino)
+- Glowing animated route lines (dashed, flowing) between unlocked cities; dimmed dashed lines to locked cities
+- City node states:
+  - **Current city**: Pulsing purple node with glow halo, labeled "CURRENT"
+  - **Completed cities**: Green node with ring, checkmark badge
+  - **Locked cities**: Dimmed gray nodes with lock icon
+- Click a city → side panels update to show that city's clusters and stats
+- Legend in bottom corner: current / completed / locked / active route
+
+### Three-Column Grid (below map)
+
+**Left column — Memory Strength**
+- City average percentage (large number, 36px)
+- Gate status indicator: "✓ Gate reached (60%+) — Next city unlocked" or "× Gate not reached"
+- Per-cluster strength bars:
+  - Green: 85%+ (mastered)
+  - Blue: 60–84% (on track)
+  - Amber: 30–59% (learning)
+  - Red: <30% (at-risk)
+- Bars show the selected city's clusters (updates when map city is clicked)
+
+**Center column — Review Activity**
+- Cards due today (highlighted count)
+- Last session summary (cards reviewed, score breakdown: ✓ good / ⬤ hard / ✗ again)
+- Average session time
+- Total reviews (all-time)
+- Retention curve mini-chart (30-day FSRS retrievability trend)
+- No streak counters, no XP, no guilt metrics
+
+**Right column — System Health**
+- Azure Speech (TTS) — connection status
+- Azure Pronunciation Assessment — connection status
+- lingua.db — card count, WAL mode indicator
+- Morning Push Cron — schedule + last run
+- Pre-warm Pipeline — cards ready for today
+- Lingua Sub-agent — model (DeepSeek V4 Pro)
+- Whisper (local) — status, port
+- Leech Queue — flagged card count (amber if >0)
+
+### Bottom Strip — Card Inventory
+- Six-up stat grid: total cards, per-unlocked-city counts, locked cities total
+- Type breakdown: Vocab / Phrases / Grammar / Pronunciation / Production
+- Last import info (deck name, validation result)
+
+### Explicitly excluded from v1
+- Badge gallery — not essential at launch
+- Heatmap — cluster bars already surface weak spots
+- Real-time session viewer — Telegram is the session; MC is for post-review
+- Streak counters or engagement metrics
+
+### Mockup
+A visual mockup of this design is saved at [`assets/mission-control-mockup.png`](assets/mission-control-mockup.png).
