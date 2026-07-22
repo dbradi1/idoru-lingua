@@ -245,9 +245,11 @@ assess_pronunciation(audio_path, reference_text) → PronunciationScore  # phone
 ## Open To-Do Items (tracked in GitHub Issues)
 - **#2** Azure Speech resource creation (blocked on Drew's Azure login)
 - **#3** Lingua sub-agent setup in OpenClaw config
-- **Drew to-do:** Create Telegram Lingua group chat
+- **#4** Install Xcode on MacBook Pro for native iOS development
+- **Drew to-do:** Create Telegram Lingua group chat (for notification channel)
 - **Drew to-do:** Review Lingua SOUL.md draft (emailed)
-- **Remaining:** Mission Control page design, cron jobs, Telegram bot flow
+- **Drew to-do:** Install Xcode (Issue #4)
+- **Remaining:** iOS app screen design, API layer design, Anki import process, Roma/Firenze content creation
 ### 13. City Map: 8 Cities (CEFR A1 → B2) ✅
 **Decision:** 8 cities, 46 skill clusters, ~840 cards. Progressive volume. Geographic spiral through Italy.
 
@@ -531,3 +533,75 @@ A visual mockup of this design is saved at [`assets/mission-control-mockup.png`]
 - Push message tells Drew to type `pronto`
 - Lingua sub-agent sees `pronto` in the Lingua group chat, reads the pending session, starts serving cards
 - 10-minute timeout on the session — if Drew never says `pronto`, session expires and cards return to queue
+
+---
+
+### 26. Primary Interface: Native iOS App (Swift) ✅
+
+**Decision:** Build a native iOS app in Swift/SwiftUI as the primary interactive interface. Telegram becomes notification-only. Mission Control remains the web dashboard.
+
+**Rationale:**
+- We've invested heavily in architecture quality (FSRS, Azure phoneme scoring, 8-city progression, memory strength gauges) — the front-end should match that effort
+- Telegram inline buttons and text messages are too constrained for a polished learning experience
+- Native iOS gives us: smooth gesture-based card interactions, native audio recording/playback, visual pronunciation score breakdowns, animated progress gauges, the Italy map as an interactive element, push notifications
+- This is a personal tool, not a mass-market app — no App Store deployment needed for v1 (free Apple Developer account runs on own device)
+
+**Architecture impact:**
+
+| Layer | Before (Telegram-primary) | Now (iOS-primary) |
+|-------|---------------------------|-------------------|
+| `lingua_engine.py` | Unchanged | Unchanged — still the headless core |
+| API layer | Flask blueprint (MC only) | Thin REST API (FastAPI or Flask) serving both iOS app and Mission Control |
+| Telegram | Primary interaction | Notification channel only — morning push, reminders, achievement notifications |
+| Mission Control | Web dashboard | Web dashboard (unchanged) |
+| iOS app | Not planned | Primary interactive interface |
+
+**Build workflow:**
+- Idoru writes all Swift code (views, models, networking, audio, everything)
+- Drew compiles and tests on MacBook Pro using Xcode (Issue #4)
+- Drew sends screenshots/error logs → Idoru iterates and fixes
+- Same division of labor as Mission Control (Idoru writes, Drew deploys)
+
+**What Telegram still does (notification layer):**
+- Morning push notification: "☕ 8 cards due — open the app to start"
+- Session reminders if overdue cards pile up
+- Achievement notifications (city arrival, badge earned)
+- System status (pre-warm failures, etc. per Decision #25 failure matrix)
+- No card rendering, no grading, no interactive flow — just nudges to open the app
+
+**What the iOS app handles:**
+- Card rendering (all 5 active card types: vocab, phrases, grammar, pronunciation, production)
+- Audio playback (Azure Luna TTS reference audio)
+- Audio recording (Drew's pronunciation attempts)
+- Gesture-based rating (swipe or tap — again/hard/good/easy)
+- Visual Italy map with city progression
+- Memory Strength gauges and retention charts
+- Pronunciation score visualization (phoneme-level breakdown)
+- On-demand review sessions (replaces `quiz me` / `pronto`)
+- Session summary screen
+- `spiega` (explain) — tap to see grammar note for current card
+- `annulla` (undo) — undo last rating
+
+**What stays in the engine (not in the app):**
+- FSRS scheduling logic
+- Azure TTS generation (server-side, audio files served via API)
+- Azure Pronunciation Assessment scoring (server-side, app sends audio → server scores → returns results)
+- lingua.db operations
+- Pre-warm pipeline (cron)
+- Card validation
+- Leech detection
+- Progression gate logic
+
+**Tech stack:**
+- Swift + SwiftUI (iOS 17+ target)
+- URLSession for API calls
+- AVAudioEngine for pronunciation recording
+- AVAudioPlayer for reference audio playback
+- UserNotifications framework for push (morning reminders)
+- Server: FastAPI or Flask thin API layer (same host as Mission Control, different port or path prefix)
+
+**Affected prior decisions:**
+- **Decision #4** (Telegram Flow): Telegram is now notification-only, not the interactive session flow. The sequential card flow moves to the app. Trigger words (`pronto`, `basta`) become in-app actions, not Telegram messages. `spiega` and `annulla` remain as concepts but are app UI interactions.
+- **Decision #6** (Delivery): Updated delivery model — iOS app (primary) + Telegram (notifications) + Mission Control (dashboard). No separate standalone UI needed — the app IS the standalone UI.
+- **Decision #7** (Scheduling): Morning push now says "open the app" instead of "type pronto." On-demand quizzes happen in-app, not via Telegram `quiz me`.
+- **Decision #25** (Cron Pipeline): Push message format changes from "type *pronto*" to "open the app to start." Pre-warm pipeline unchanged. Failure notifications still go to Telegram (that's the right channel for system alerts).
