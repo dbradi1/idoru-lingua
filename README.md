@@ -760,3 +760,121 @@ Core interaction screen — card-by-card learning flow.
 - Card surfaces: #2A2118 (warm dark, not cold gray)
 - Text: #E8DCC8 (warm cream)
 - Automatic switch with system setting, manual override in Settings
+---
+
+### 28. API Layer: FastAPI + Thin REST ✅
+
+**Decision:** Build a thin REST API using FastAPI on the ThinkPad, serving both the iOS app and Mission Control dashboard. Runs alongside Mission Control's Flask app as a separate service.
+
+**Why FastAPI over Flask:**
+- Async-native — matters for pronunciation scoring (upload audio → wait for Azure → return scores) without blocking other requests
+- Auto-generated OpenAPI docs — clean contract between server and Swift app, can auto-generate Swift models from the API spec
+- Built-in request validation via Pydantic — catches malformed requests before they hit the engine
+- Separate service from Mission Control — no risk of breaking existing Flask app during development
+
+**Service configuration:**
+- Port: 5051 (Mission Control stays on 5050)
+- Bound to Tailscale IP only (100.66.129.43) — not 0.0.0.0, not localhost
+- systemd service: `idoru-lingua-api.service`
+- Imports `lingua_engine.py` directly as a Python library (same process, no inter-process communication)
+- Python 3.12+ (matches existing Idoru infra)
+- Secrets from `/home/drew/.env` (AZURE_SPEECH_KEY, AZURE_SPEECH_REGION, etc.)
+
+**Authentication:**
+- Simple API key — generated once, stored in iOS app's Keychain
+- Sent as `Authorization: Bearer <key>` header on every request
+- Key stored server-side in `lingua.db` or config file
+- No OAuth, no user accounts — single-user app over Tailscale
+- Middleware validates key on every request, returns 401 if missing/invalid
+
+**Versioning:**
+- All endpoints prefixed with `/api/v1/`
+- Future breaking changes → `/api/v2/`, old app keeps working against v1
+
+#### Endpoints
+
+**Session management:**
+- `GET /api/v1/session/due` — get due cards for today (calls `get_due_cards()`)
+- `POST /api/v1/session/start` — start a session, returns session_id + first card
+- `POST /api/v1/session/{id}/submit` — submit answer for current card, returns grade + next card
+- `POST /api/v1/session/{id}/undo` — undo last rating (calls `undo_last_rating()`)
+- `POST /api/v1/session/{id}/end` — end session, returns summary
+
+**Card interaction:**
+- `GET /api/v1/card/{id}/audio` — serve cached `.ogg` audio file (or 404 if not yet generated)
+- `GET /api/v1/card/{id}/explain` — get grammar note (calls `get_card_explanation()`)
+- `POST /api/v1/pronunciation/assess` — upload audio + reference text, returns phoneme scores (calls `assess_pronunciation()`)
+
+**Progression:**
+- `GET /api/v1/progress/overview` — overall stats, current city, Memory Strength (calls `get_city_progress()` for all cities)
+- `GET /api/v1/progress/city/{id}` — city detail with cluster breakdown
+- `GET /api/v1/progress/clusters/{city_id}` — cluster strengths (calls `get_cluster_strength()`)
+
+**Stats:**
+- `GET /api/v1/stats/retention?range=30d` — retention curve data points
+- `GET /api/v1/stats/history?range=30d` — daily review counts
+- `GET /api/v1/stats/leeches` — leech queue contents
+
+**Practice:**
+- `GET /api/v1/practice/quiz` — on-demand due cards (same as session/due but not tied to morning push)
+- `GET /api/v1/practice/free/{city_id}` — browse cards without FSRS grading (casual review)
+- `GET /api/v1/practice/pronunciation` — pronunciation cards specifically
+
+**Settings:**
+- `GET /api/v1/settings` — daily cap, notification schedule, audio preferences
+- `PATCH /api/v1/settings` — update settings
+
+#### Pronunciation Flow (latency-critical)
+
+1. App records audio (m4a/wav on iOS via AVAudioEngine)
+2. App uploads to `POST /api/v1/pronunciation/assess` as multipart form data (audio file + reference text)
+3. Server calls Azure Pronunciation Assessment via `lingua_engine.py`
+4. Server returns JSON: `{ overall_score: 78, phonemes: [{ sound: "gli", score: 45 }, { sound: "r", score: 92 }, ...] }`
+5. App renders phoneme score bars
+- **Target latency:** under 3 seconds end-to-end
+- App shows loading state with waveform animation while waiting
+- Server-side timeout: 30 seconds for Azure response (returns 504 if exceeded)
+
+#### Error Handling — App Side
+
+The app must handle network failures gracefully. Drew opens this app over coffee every morning — it should never crash, show a blank screen, or display a raw stack trace.
+
+**Connection failures (Tailscale down, ThinkPad offline, network unreachable):**
+- Detected when: URLSession requests time out or can't resolve/connect
+- App behavior:
+  - Home tab: Show warm-toned offline banner — "🔇 Can't reach Idoru Lingua server. Check that Tailscale is connected on your iPhone." with a "Retry" button
+  - Card view: If mid-session and connection drops, show "Connection lost. Your progress is saved. Reconnect to continue." — graded cards are already submitted, ungraded card stays pending
+  - Journey/Stats tabs: Show last cached data with a subtle "offline — showing last sync" indicator. Stale data is better than an empty screen.
+  - Practice tab: Disable action buttons, show "Requires connection"
+- The app caches the last successful API response for each tab locally (UserDefaults or Core Data) so there's always something to show
+- Automatic retry: every 30 seconds while offline, silent until reconnected
+- On reconnect: sync any pending session state, dismiss offline banner with a brief "✓ Reconnected" toast
+
+**API error responses:**
+
+| HTTP Status | Meaning | App behavior |
+|-------------|---------|--------------|
+| 200 | Success | Normal rendering |
+| 401 | Invalid API key | Show "Authentication failed — check API key in Settings" |
+| 404 | Card/resource not found | Skip item, log, continue session if possible |
+| 422 | Validation error (malformed request) | Show "Something went wrong with that request" (non-technical) |
+| 500 | Server error | Show "Server error — Idoru is looking into it. Try again in a moment." |
+| 504 | Azure timeout (pronunciation only) | Show "Pronunciation scoring is taking too long. Try again." — don't lose the card |
+| Timeout | Tailscale down / network unreachable | Show offline banner (see above) |
+
+**Mid-session recovery:**
+- If connection drops during a card submission: the app holds the answer locally and retries on reconnect
+- If connection drops between cards: next card request retries automatically
+- If the app is force-closed mid-session: on next launch, app checks for active session via `GET /api/v1/session/due` and offers to resume
+- Session state of record is always server-side (lingua.db) — the app is a thin client, never the source of truth for FSRS state
+
+**Server-side error handling:**
+- All endpoints wrapped in try/except — returns JSON error with `{ error: string, code: string }` format
+- Errors logged to `~/.idoru-lingua-api.log` (same pattern as other Idoru services)
+- Azure failures during pronunciation scoring: return 504 with helpful message, don't crash the API process
+- lingua.db errors: return 500, log the SQLite error, notify Idoru via diary entry
+- If the API service itself crashes: systemd auto-restarts (same pattern as Mission Control)
+
+**No rate limiting (v1):**
+- Single-user app over Tailscale — not needed
+- If ever exposed beyond Tailscale, add rate limiting at that point
