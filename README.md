@@ -444,3 +444,90 @@ assess_pronunciation(audio_path, reference_text) → PronunciationScore  # phone
 
 ### Mockup
 A visual mockup of this design is saved at [`assets/mission-control-mockup.png`](assets/mission-control-mockup.png).
+
+---
+
+### 25. Daily Cron Pipeline: Pre-Warm + Morning Push ✅
+
+**Decision:** Two staggered OpenClaw cron jobs — pre-warm at 6:50 AM ET, morning push at 7:00 AM ET. Pre-warm does the heavy lifting (validation, TTS generation, queue prep); push reads the ready queue and sends a Telegram message.
+
+**Why two jobs instead of one:** Pre-warm can fail gracefully without Drew seeing a broken morning message. The push is a trivial operation that reads the ready queue and sends a message — it almost can't fail. If pre-warm has issues, the push adapts its message accordingly.
+
+**Schedule:**
+- **Pre-warm**: `50 6 * * *` (6:50 AM ET, America/New_York)
+- **Morning push**: `0 7 * * *` (7:00 AM ET, America/New_York)
+- 10-minute buffer between jobs — massive overkill in the normal case, but absorbs Azure degradation, DNS hiccups, and sub-agent startup delays
+
+**Both jobs:** `sessionTarget: "isolated"`, `payload.kind: "agentTurn"`, model: `google/gemini-2.0-flash` (lightweight, same as other cron jobs — DeepSeek V4 Pro is for grading only)
+
+#### Pre-Warm Pipeline (6:50 AM)
+
+**Step 1 — Pull due cards from FSRS**
+- Query `lingua.db` for all cards where FSRS due date ≤ today
+- Sort by cluster weakness (weakest clusters first)
+- Apply daily review cap (default 20 cards)
+
+**Step 2 — Validate each card**
+- SQL query per card: check for Italian text, English text, card type, valid FSRS state
+- Sub-millisecond per card — full batch validates in under 1 second
+- Cards that fail validation are skipped and logged (don't send broken cards to Drew)
+
+**Step 3 — Check for missing TTS audio**
+- File existence check for each card's cached `.ogg` file
+- In steady state, zero missing (all audio generated at import time or card creation)
+- This is a safety net, not the main path
+
+**Step 4 — Generate missing audio (parallel)**
+- Missing audio generated via Azure TTS (`it-IT-LunaNeural`) using async/parallel requests
+- Per-request timeout: 30 seconds
+- Parallel execution: all missing files generated concurrently, not sequential
+- Hard timeout: 5 minutes (300 seconds) for the entire pre-warm job
+
+**Step 5 — Verify pronunciation reference text**
+- For pronunciation cards, verify reference text is present in DB
+- If missing, skip the card and log it
+
+**Step 6 — Queue validated cards**
+- Write session record to `lingua.db`: session_id, due_card_ids, status: "pending_start", created_at
+- Session waits for Drew to type `pronto`
+
+**Audio generation strategy:** All TTS audio is generated at import time (840 cards ≈ 7 minutes one-time work). Pre-warm only generates missing audio as a safety net — in normal operation it finds nothing to generate.
+
+#### Morning Push (7:00 AM)
+
+- Read the pre-warmed session queue from `lingua.db`
+- Check pre-warm status:
+  - **Success**: Send "☕ N cards due — type *pronto* to start" to Lingua group chat
+  - **Partial success**: Send "☕ N cards due — M ready, K skipped. Type *pronto* when you're ready."
+  - **Zero due cards**: Send "☀️ Niente da fare oggi — no cards due! Enjoy the coffee break off. See you tomorrow."
+  - **Pre-warm failed/timed out**: Send "☕ Italian coffee break is delayed today — technical issue. I'll have it ready shortly." and schedule retry pre-warm at 7:10 AM
+- Store session state for sub-agent pickup (pending_card_id, timestamp)
+- 10-minute timeout on the session — if Drew never says `pronto`, session expires
+
+#### Failure Scenarios & Notifications
+
+**Notification philosophy:** User impact, not system melodrama. Every notification answers: "Can I do my Italian review today or not?"
+
+| Scenario | Detection | Impact | Notification | Action |
+|----------|-----------|--------|--------------|--------|
+| DNS resolution failure | Azure endpoints can't resolve | Can't generate missing audio or run pronunciation scoring | "☕ Pre-warm hit a network issue — DNS couldn't resolve Azure. Review will work but audio may be missing on some cards. Looking into it." | Retry once after 60s. If still failing, mark affected cards as "audio pending" and proceed text-only |
+| Azure TTS slow/cold start | TTS calls exceed 30s per request or return 5xx | Missing audio on affected cards | "☕ Azure TTS is sluggish this morning. N cards missing audio — text-only review still works. I'll regenerate audio later." | Skip audio for affected cards, continue pre-warm. Log card IDs for later regeneration |
+| Azure TTS complete outage | All TTS calls fail, or auth returns 401/403 | No new audio can be generated | "☕ Azure Speech is down — can't generate audio right now. Text-only review is ready, N cards due. I'll fix audio when Azure recovers." | Proceed text-only. Schedule retry pre-warm 15 min later |
+| Azure Pronunciation outage | Pronunciation scoring API fails | Pronunciation cards can't be graded | "☕ Pronunciation scoring is temporarily unavailable. You can still do vocab and phrase cards — I'll queue pronunciation cards for later." | Filter pronunciation cards out of today's session, hold for next session |
+| Ollama rate limiting (429) | Sub-agent model call returns 429 | Pre-warm sub-agent can't execute | "☕ Hit a rate limit on the AI provider — morning push will be a few minutes late. Retrying." | OpenClaw auto-retries with backoff. If 3 retries fail, send delayed notification |
+| lingua.db corruption/lock | SQLite errors or lock beyond 10s | Can't read cards or session state | "⚠️ Lingua database issue this morning — can't load review cards. Working on it. Will let you know when it's fixed." | Hard blocker — no session possible. Log SQLite error. Retry in 15 min. If second failure, notify with specific error |
+| Sub-agent startup timeout | No output within 90s of trigger | Pre-warm hasn't started | First occurrence: silent (OpenClaw retries). Second timeout: "☕ Morning Italian prep is running late — slight delay on your coffee break today." | OpenClaw auto-retries. If both fail, push job detects no ready queue and sends delayed message |
+| Zero due cards (not a failure) | FSRS returns 0 due cards | Nothing to review | "☀️ Niente da fare oggi — no cards due! Enjoy the coffee break off. See you tomorrow." | Skip pre-warm entirely. Push sends nothing-due message. No session created |
+| Pre-warm partial success | Some cards validated, some failed | Reduced session | "☕ N cards due — M ready, K skipped (audio generation issue). Type *pronto* when you're ready." | Push proceeds with valid cards. Skipped cards return to FSRS queue for tomorrow |
+| Pre-warm complete failure | 0 valid cards or 5-min timeout | No session available | "☕ Italian coffee break is delayed today — technical issue. I'll have it ready shortly." | Schedule retry pre-warm at 7:10 AM. If retry also fails: "Still working on it — will let you know when your review is ready." Manual fix at that point |
+
+#### Notification Routing
+- All notifications go to the Lingua group chat (once created), or main Idoru chat as fallback
+- No notifications during 11 PM – 6 AM (quiet hours) — push job handles messaging at 7 AM
+- Critical failures (DB corruption, complete Azure outage) also logged to Mission Control diary
+
+#### Session Handoff
+- Cron writes session record to `lingua.db` (session_id, due_card_ids, status: "pending_start", created_at)
+- Push message tells Drew to type `pronto`
+- Lingua sub-agent sees `pronto` in the Lingua group chat, reads the pending session, starts serving cards
+- 10-minute timeout on the session — if Drew never says `pronto`, session expires and cards return to queue
