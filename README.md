@@ -4,7 +4,7 @@
 
 # Idoru Lingua — Italian Journey
 
-A language learning system built on spaced repetition, designed around a journey through Italian cities. Telegram-native interaction, Mission Control dashboard, grounded in real memory science.
+A language learning system built on spaced repetition, designed around a journey through Italian cities. Native iOS app for daily review, Telegram for notifications, Mission Control dashboard for visualization. Grounded in real memory science.
 
 ## Design Status: In Progress
 **Last updated:** 2026-07-20
@@ -18,7 +18,8 @@ A language learning system built on spaced repetition, designed around a journey
 ### What This Is
 - Spaced repetition engine (FSRS) tracking real memory state
 - Skill clusters organized by city (ordering food in Roma, navigating transit in Firenze)
-- Telegram-native reviews — morning push + on-demand quizzes + conversational practice
+- Native iOS app for daily reviews with audio pronunciation and spaced repetition
+- Telegram notifications for morning reminders and system alerts
 - Mission Control dashboard with visual map, Memory Strength gauges, weak spots
 - Badges tied to real abilities ("Ordered coffee entirely in Italian"), not grinding
 
@@ -80,8 +81,10 @@ A language learning system built on spaced repetition, designed around a journey
 - **TTS voice for Italian reference audio:** Azure Speech `it-IT-LunaNeural` — selected by Drew after sampling 42 Azure Italian voices via Verbatik gallery. Italian-native neural voice, not an English model attempting Italian.
 - **Bundled provider:** Azure Speech handles both TTS (reference audio generation) and STT (pronunciation assessment) — one SDK, one auth, one provider for all voice features.
 
-### 4. Telegram Flow: Dedicated Group Chat + Sequential Review ✅
-**Decision:** All Lingua interaction happens in a dedicated Telegram group chat. One card at a time, interactive sequential flow.
+### 4. Telegram Flow: Dedicated Group Chat + Sequential Review ⚠️ SUPERSEDED by #26
+> **Superseded:** This decision described Telegram as the interactive interface. Decision #26 replaced this with a native iOS app. Telegram is now notification-only. Session flow, trigger words, and state management now live in the iOS app + FastAPI layer (see #28). Kept for historical context.
+
+**Original Decision:** All Lingua interaction happens in a dedicated Telegram group chat. One card at a time, interactive sequential flow.
 
 **Dedicated group chat:**
 - Separate Telegram group created specifically for Lingua
@@ -110,8 +113,10 @@ A language learning system built on spaced repetition, designed around a journey
 
 **Exposure:** Thin API endpoint in Mission Control, same pattern as diary/health endpoints.
 
-### 6. Delivery: Telegram + Mission Control (no separate app) ✅
-**Decision:** Telegram is the daily driver for learning interaction. Mission Control is the dashboard for visualization.
+### 6. Delivery: Telegram + Mission Control (no separate app) ⚠️ SUPERSEDED by #26
+> **Superseded:** Telegram is now notification-only. The iOS app is the primary interactive interface. Mission Control remains the dashboard. See Decision #26 for the current delivery model.
+
+**Original Decision:** Telegram is the daily driver for learning interaction. Mission Control is the dashboard for visualization.
 
 **Telegram handles:**
 - Daily review push ("☕ Italian coffee break — 8 cards due")
@@ -130,8 +135,10 @@ A language learning system built on spaced repetition, designed around a journey
 
 **Standalone UI:** Not needed for v1. If we want dedicated study sessions later, build as Mission Control page (v2).
 
-### 7. Scheduling: Hybrid (Morning Push + On-Demand) ✅
-**Decision:** Morning "Italian coffee break" push with due cards, plus on-demand quizzes via Telegram.
+### 7. Scheduling: Hybrid (Morning Push + On-Demand) ⚠️ UPDATED by #26
+> **Updated:** Hybrid scheduling model is still valid, but delivery channel changed. Morning push now says "open the app" instead of "type pronto." On-demand quizzes happen in-app, not via Telegram `quiz me`. See Decision #26.
+
+**Original Decision:** Morning "Italian coffee break" push with due cards, plus on-demand quizzes via Telegram.
 
 **Details:**
 - Morning push: due cards delivered as a Telegram batch
@@ -162,7 +169,7 @@ A language learning system built on spaced repetition, designed around a journey
 - Voice: `it-IT-LunaNeural` — Italian-native neural voice, selected by Drew
 - Pricing: $16/million characters (prebuilt neural). Free tier: 500K chars/month (~83K words)
 - Roma card set (~60 cards × ~15 chars) = ~900 characters. Regenerable 500+ times on free tier alone.
-- Audio cached as `.ogg` files — generate once, reuse forever
+- Audio cached as `.m4a` files — generate once, reuse forever
 
 **Pronunciation Assessment (STT scoring):**
 - Italian (it-IT) — phoneme-level accuracy scores
@@ -221,7 +228,7 @@ validate_import(deck_path) → ImportReport  # one-time on deck load
 prewarm_session(user_id) → SessionBatch  # daily, before morning push
 
 # TTS (Azure Luna)
-generate_audio(text) → path  # cached .ogg file
+generate_audio(text) → path  # cached .m4a file
 get_cached_audio(card_id) → path | None
 
 # Pronunciation (Azure Assessment)
@@ -269,7 +276,7 @@ assess_pronunciation(audio_path, reference_text) → PronunciationScore  # phone
 - Vocab/phrase cards: audio attached automatically
 - Pronunciation cards: reference audio sent before Drew attempts, then Azure phoneme scoring grades the attempt
 - Reinforces correct pronunciation muscle memory on every interaction
-- TTS audio cached as `.ogg` files — generate once per card, reuse forever. Cost effectively zero.
+- TTS audio cached as `.m4a` files — generate once per card, reuse forever. Cost effectively zero.
 - **Azure Speech resource:** single key (`AZURE_SPEECH_KEY` + `AZURE_SPEECH_REGION`) covers both TTS and pronunciation assessment
 - [ ] **Integration with Idoru infra** — Mission Control page design, cron jobs, Telegram bot flow
 ### 9. Content Source: Anki Decks ✅
@@ -475,7 +482,7 @@ A visual mockup of this design is saved at [`assets/mission-control-mockup.png`]
 - Cards that fail validation are skipped and logged (don't send broken cards to Drew)
 
 **Step 3 — Check for missing TTS audio**
-- File existence check for each card's cached `.ogg` file
+- File existence check for each card's cached `.m4a` file
 - In steady state, zero missing (all audio generated at import time or card creation)
 - This is a safety net, not the main path
 
@@ -801,7 +808,7 @@ Core interaction screen — card-by-card learning flow.
 - `POST /api/v1/session/{id}/end` — end session, returns summary
 
 **Card interaction:**
-- `GET /api/v1/card/{id}/audio` — serve cached `.ogg` audio file (or 404 if not yet generated)
+- `GET /api/v1/card/{id}/audio` — serve cached `.m4a` audio file (or 404 if not yet generated)
 - `GET /api/v1/card/{id}/explain` — get grammar note (calls `get_card_explanation()`)
 - `POST /api/v1/pronunciation/assess` — upload audio + reference text, returns phoneme scores (calls `assess_pronunciation()`)
 
