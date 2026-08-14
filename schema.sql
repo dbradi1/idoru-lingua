@@ -18,9 +18,12 @@
 -- Single-user app; id is always 1. Structured for future multi-user.
 CREATE TABLE IF NOT EXISTS user_settings (
     id INTEGER PRIMARY KEY DEFAULT 1,
-    daily_review_cap INTEGER DEFAULT 20,       -- #25: max cards per morning session
-    notification_time TEXT DEFAULT '07:00',    -- #25: when morning cron fires
-    api_key TEXT,                              -- #28: auth token for REST API
+    daily_review_cap INTEGER DEFAULT 20,                  -- #25: max cards per morning session
+    notification_time TEXT DEFAULT '08:00',               -- #28: when morning push fires
+    session_timeout_minutes INTEGER DEFAULT 10,           -- #9: auto-end session after this long
+    audio_voice TEXT DEFAULT 'it-IT-LunaNeural',          -- #9: Azure TTS voice for card audio
+    audio_rate REAL DEFAULT 1.0,                          -- #9: TTS speech speed multiplier
+    api_key TEXT,                                         -- #28: auth token for REST API
     created_at TEXT DEFAULT (datetime('now')),
     updated_at TEXT DEFAULT (datetime('now'))
 );
