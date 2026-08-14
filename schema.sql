@@ -6,7 +6,7 @@
 --   fsrs_next_review is a real column for the only query we run against FSRS state
 --   All other FSRS fields (stability, difficulty, reps, lapses, state) live inside the JSON blob
 --
--- Maps to architecture decisions #1–#29.
+-- Maps to architecture decisions #1–#30.
 
 -- ─── Pragmas ────────────────────────────────────────────────────────────────
 -- Run these on every connection:
@@ -65,6 +65,7 @@ CREATE TABLE IF NOT EXISTS cards (
     english_text TEXT NOT NULL,
     grammar_note TEXT,            -- for spiega (#22)
     audio_path TEXT,              -- relative path to cached TTS file
+    audio_status TEXT DEFAULT 'pending',  -- #10: 'generated'|'pending'|'failed'
     reference_text TEXT,          -- for pronunciation cards (may differ from italian_text)
     -- FSRS state (hybrid approach)
     fsrs_state_json TEXT,         -- full FSRS Card object serialized as JSON

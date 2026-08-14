@@ -1107,3 +1107,62 @@ python -m lingua.import --rollback 2026-08-14-roma-001
 - `import_source` and `import_validated` columns already in schema (Decision #7)
 - No staging table — flagged cards live in `cards` with `import_validated = 0`, filtered out of review queries by default
 - No `import_batches` table — batch metadata is derivable from `SELECT DISTINCT import_batch, import_source FROM cards`. For a one-time import operation, a dedicated table is overengineering
+
+### 30. Lazy TTS Generation + Audio Resilience (Issue #10) ✅
+
+**Decision:** Three resilience measures to ensure audio is always available (or degrades gracefully) regardless of pre-warm failures, Azure outages, or file corruption.
+
+**Why:** Pre-warm is a performance optimization, not a correctness requirement. If it fails for any reason, the system should still serve audio — just slower on first access. No card should be broken because a background job hiccuped.
+
+#### 1. Lazy TTS Generation
+
+When `GET /api/v1/card/{id}/audio` is called and the cached `.m4a` file is missing or corrupt:
+1. API calls Azure TTS (`it-IT-LunaNeural`) to synthesize the card's `italian_text`
+2. Result is cached to disk at the same path pre-warm would use
+3. File is returned to the client (200, audio/m4a)
+4. Subsequent requests serve the cached file directly (zero Azure latency)
+
+**First-hit latency:** ~1-2 seconds (Azure round-trip). Every hit after: instant (local file serve).
+
+**Timeout:** 10 seconds max. If Azure doesn't respond, return 503 with `AUDIO_UNAVAILABLE` error code. App shows "Audio temporarily unavailable" — card still works for text/MC, just no audio playback. App retries on next card view.
+
+**`audio_status` column on `cards` table:**
+- `generated` — audio file exists and is cached
+- `pending` — audio not yet generated (import completed without TTS, or file was deleted)
+- `failed` — Azure failed to generate (persistent error, not just a timeout)
+
+Pre-warm, lazy generation, and the import pipeline all update this column. Enables a batch "generate all pending" job and lets the API decide whether to serve cached or generate fresh.
+
+#### 2. Audio Integrity Check (Pre-warm)
+
+During the pre-warm pipeline's audio step, verify each cached file:
+- File exists AND file size > 0 bytes
+- If check fails: delete the file, set `audio_status = 'pending'`, regenerate via Azure TTS
+
+**Lightweight check only** (file exists + non-zero bytes). Full m4a header parsing is overkill for ~20 cards per morning. Lazy generation is the safety net for any corruption that passes the lightweight check but is still unplayable.
+
+#### 3. Import Resilience (Azure Down During Import)
+
+Decision #29 phase 4 (TTS generation) is the last step of the Anki import pipeline. If Azure is unreachable during import:
+1. Cards are imported with text only — `audio_status = 'pending'`
+2. Import is marked complete (text data is the source of truth, audio is supplementary)
+3. A batch generation job can be run later: `python -m lingua_engine.import --generate-pending`
+4. Lazy generation also handles individual cards on-demand
+
+Import never blocks on Azure availability. Audio is a progressive enhancement, not a gate.
+
+#### Error Responses
+
+| Code | HTTP | Meaning |
+|------|------|---------|
+| `AUDIO_UNAVAILABLE` | 503 | Azure TTS failed or timed out during lazy generation |
+| `CARD_NOT_FOUND` | 404 | Card ID doesn't exist (no audio to generate) |
+
+#### Engine Function Signature
+
+```python
+def get_card_audio(card_id: int) -> Path:
+    """Return path to cached .m4a audio file.
+    If file missing/corrupt, generate via Azure TTS, cache, and return.
+    Raises AzureTimeoutError if Azure doesn't respond in 10s."""
+```
