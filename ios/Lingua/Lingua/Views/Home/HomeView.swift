@@ -19,8 +19,7 @@ struct HomeView: View {
                     // Welcome header
                     VStack(spacing: 4) {
                         Text("Lingua")
-                            .font(.largeTitle)
-                            .fontWeight(.bold)
+                            .font(.linguaDisplay)
                         Text("🇮🇹")
                             .font(.system(size: 48))
                     }
@@ -37,8 +36,7 @@ struct HomeView: View {
                     if appState.isOnline {
                         VStack(spacing: 8) {
                             Text("\(dueCards.count) cards due")
-                                .font(.title2)
-                                .fontWeight(.semibold)
+                                .font(.linguaHeading)
 
                             if dueCards.isEmpty {
                                 Text("All caught up! 🎉")
@@ -119,7 +117,7 @@ struct SessionResumeCard: View {
                     .foregroundColor(.linguaBlue)
                 VStack(alignment: .leading) {
                     Text("Session in progress")
-                        .font(.headline)
+                        .font(.linguaHeading)
                     Text("\(session.cardsCompleted) / \(session.cardsTotal) cards completed")
                         .font(.caption)
                         .foregroundColor(.secondary)
@@ -147,7 +145,7 @@ struct CityCard: View {
                     .font(.title)
                 VStack(alignment: .leading) {
                     Text(city.name)
-                        .font(.headline)
+                        .font(.linguaHeading)
                     Text(city.cefrLevel)
                         .font(.caption)
                         .foregroundColor(.secondary)

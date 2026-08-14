@@ -26,7 +26,7 @@ struct StatsView: View {
                     // Retention chart
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Review History")
-                            .font(.headline)
+                            .font(.linguaHeading)
                         if retention.isEmpty {
                             Text("No data yet")
                                 .foregroundColor(.secondary)
@@ -50,13 +50,12 @@ struct StatsView: View {
                     if !retention.isEmpty {
                         VStack(alignment: .leading, spacing: 8) {
                             Text("Accuracy")
-                                .font(.headline)
+                                .font(.linguaHeading)
                             let total = retention.reduce(0) { $0 + $1.reviews }
                             let correct = retention.reduce(0) { $0 + $1.correct }
                             let accuracy = total > 0 ? Int(Double(correct) / Double(total) * 100) : 0
                             Text("\(accuracy)% correct")
-                                .font(.title2)
-                                .fontWeight(.bold)
+                                .font(.linguaDisplay)
                                 .foregroundColor(accuracy >= 80 ? .linguaGood : accuracy >= 60 ? .linguaHard : .linguaAgain)
                         }
                         .padding()
@@ -67,7 +66,7 @@ struct StatsView: View {
                     // Leeches
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Leech Queue")
-                            .font(.headline)
+                            .font(.linguaHeading)
                         if leeches.isEmpty {
                             Text("No leeches — great! 🎉")
                                 .foregroundColor(.secondary)

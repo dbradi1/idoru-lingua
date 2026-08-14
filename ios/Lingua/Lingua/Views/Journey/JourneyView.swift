@@ -56,7 +56,7 @@ struct CityRow: View {
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(city.name)
-                    .font(.headline)
+                    .font(.linguaHeading)
                 Text("\(city.cefrLevel) · \(city.theme)")
                     .font(.caption)
                     .foregroundColor(.secondary)
@@ -102,8 +102,7 @@ struct CityDetailView: View {
                             .font(.system(size: 48))
                         VStack(alignment: .leading) {
                             Text(city.name)
-                                .font(.title2)
-                                .fontWeight(.bold)
+                                .font(.linguaHeading)
                             Text(city.cefrLevel)
                                 .foregroundColor(.secondary)
                             Text(city.theme)

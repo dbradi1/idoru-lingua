@@ -59,8 +59,7 @@ struct CardSessionView: View {
                 .foregroundColor(.secondary)
 
             Text("Ready to practice?")
-                .font(.title2)
-                .fontWeight(.semibold)
+                .font(.linguaHeading)
 
             Button {
                 Task { await startSession() }
@@ -92,17 +91,17 @@ struct CardSessionView: View {
                 if showingResult {
                     // After grading: show the Italian text (the answer)
                     Text(card.italianText)
-                        .font(.system(size: 32, weight: .medium))
+                        .font(.linguaCard)
                         .multilineTextAlignment(.center)
                 }
 
                 Text(card.englishText)
-                    .font(.title2)
+                    .font(.linguaTranslation)
                     .multilineTextAlignment(.center)
 
                 // Card type badge
                 Text(card.cardType.uppercased())
-                    .font(.caption)
+                    .font(.linguaBadge)
                     .padding(.horizontal, 12)
                     .padding(.vertical, 4)
                     .background(Color.linguaAccent.opacity(0.2))
@@ -141,7 +140,7 @@ struct CardSessionView: View {
             // Text input
             VStack(spacing: 12) {
                 Text("Type the Italian translation:")
-                    .font(.caption)
+                    .font(.linguaCaption)
                     .foregroundColor(.secondary)
                 TextField("Type your answer...", text: $textAnswer)
                     .textFieldStyle(.roundedBorder)
@@ -166,7 +165,7 @@ struct CardSessionView: View {
             // Text input with explanation hint
             VStack(spacing: 12) {
                 Text("Type the Italian translation:")
-                    .font(.caption)
+                    .font(.linguaCaption)
                     .foregroundColor(.secondary)
                 if let note = card.grammarNote, !note.isEmpty {
                     Text("💡 \(note)")
@@ -316,11 +315,11 @@ struct GradeResultView: View {
                 .foregroundColor(gradeColor)
 
             Text(result.grade.capitalized)
-                .font(.headline)
+                .font(.linguaHeading)
                 .foregroundColor(gradeColor)
 
             Text("Next review: \(result.nextInterval)")
-                .font(.caption)
+                .font(.linguaCaption)
                 .foregroundColor(.secondary)
 
             if let pronunciation = result.pronunciation {
@@ -355,8 +354,7 @@ struct SessionCompleteView: View {
     var body: some View {
         VStack(spacing: 20) {
             Text("Session Complete! 🎉")
-                .font(.largeTitle)
-                .fontWeight(.bold)
+                .font(.linguaDisplay)
 
             VStack(spacing: 8) {
                 StatRow(label: "Total", value: "\(summary.totalCards)")
