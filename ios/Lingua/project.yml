@@ -35,3 +35,9 @@ targets:
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
         UIUserInterfaceStyle: Dark
+        NSAppTransportSecurity:
+          NSAllowsArbitraryLoads: false
+          NSExceptionDomains:
+            100.66.129.43:
+              NSExceptionAllowsInsecureHTTPLoads: true
+              NSIncludesSubdomains: false
