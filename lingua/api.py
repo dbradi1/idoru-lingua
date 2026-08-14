@@ -246,7 +246,12 @@ async def end_session(session_id: str):
     try:
         return engine.end_session(session_id)
     except ValueError as e:
-        return error_response("SESSION_NOT_FOUND", str(e), 404)
+        msg = str(e)
+        if "not found" in msg:
+            return error_response("SESSION_NOT_FOUND", msg, 404)
+        if "already completed" in msg:
+            return error_response("SESSION_NOT_ACTIVE", msg, 409)
+        return error_response("VALIDATION_ERROR", msg, 422)
 
 
 # ─── Card interaction ──────────────────────────────────────────────────────────
