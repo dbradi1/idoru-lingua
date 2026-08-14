@@ -8,15 +8,15 @@ import SwiftUI
 
 struct CardSessionView: View {
     @EnvironmentObject var appState: AppState
-    @State private var session: StartSessionResponse?
+    @State private var session: APIClient.StartSessionResponse?
     @State private var currentCard: Card?
-    @State private var gradeResult: SubmitResponse?
+    @State private var gradeResult: APIClient.SubmitResponse?
     @State private var showingResult = false
     @State private var textAnswer = ""
     @State private var selectedOption: Int? = nil
     @State private var isStarting = false
     @State private var sessionEnded = false
-    @State private var sessionSummary: SessionSummary?
+    @State private var sessionSummary: APIClient.SessionSummary?
     @State private var errorMessage: String?
 
     var body: some View {
@@ -247,7 +247,7 @@ struct CardSessionView: View {
         }
     }
 
-    private func advanceToNextCard(_ result: SubmitResponse) {
+    private func advanceToNextCard(_ result: APIClient.SubmitResponse) {
         if let next = result.nextCard {
             currentCard = next
             textAnswer = ""
@@ -277,7 +277,7 @@ struct CardSessionView: View {
 // MARK: - Grade Result
 
 struct GradeResultView: View {
-    let result: SubmitResponse
+    let result: APIClient.SubmitResponse
     let onContinue: () -> Void
 
     var gradeColor: Color {
@@ -340,7 +340,7 @@ struct GradeResultView: View {
 // MARK: - Session Complete
 
 struct SessionCompleteView: View {
-    let summary: SessionSummary
+    let summary: APIClient.SessionSummary
     let onDismiss: () -> Void
 
     var body: some View {
