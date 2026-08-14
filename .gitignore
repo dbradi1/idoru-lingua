@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+.venv/
+*.db
+*.db-wal
+*.db-shm
+.env
+lingua-logs/
+lingua-data/
