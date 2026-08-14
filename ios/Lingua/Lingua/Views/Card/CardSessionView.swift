@@ -87,15 +87,18 @@ struct CardSessionView: View {
                     .padding(.horizontal)
             }
 
-            // Card content
+            // Card content — show English as prompt, hide Italian until graded
             VStack(spacing: 20) {
-                Text(card.italianText)
-                    .font(.system(size: 32, weight: .medium))
-                    .multilineTextAlignment(.center)
+                if showingResult {
+                    // After grading: show the Italian text (the answer)
+                    Text(card.italianText)
+                        .font(.system(size: 32, weight: .medium))
+                        .multilineTextAlignment(.center)
+                }
 
                 Text(card.englishText)
-                    .font(.title3)
-                    .foregroundColor(.secondary)
+                    .font(.title2)
+                    .multilineTextAlignment(.center)
 
                 // Card type badge
                 Text(card.cardType.uppercased())
@@ -137,6 +140,9 @@ struct CardSessionView: View {
         case "vocab", "phrase":
             // Text input
             VStack(spacing: 12) {
+                Text("Type the Italian translation:")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
                 TextField("Type your answer...", text: $textAnswer)
                     .textFieldStyle(.roundedBorder)
                     .font(.body)
@@ -159,6 +165,9 @@ struct CardSessionView: View {
         case "grammar":
             // Text input with explanation hint
             VStack(spacing: 12) {
+                Text("Type the Italian translation:")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
                 if let note = card.grammarNote, !note.isEmpty {
                     Text("💡 \(note)")
                         .font(.caption)
