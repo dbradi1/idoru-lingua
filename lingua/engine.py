@@ -68,8 +68,7 @@ def get_due_cards(user_id: int = 1, limit: int = 20) -> list[dict]:
             conn,
             """
             SELECT c.* FROM cards c
-            WHERE c.fsrs_next_review IS NULL
-               OR c.fsrs_next_review <= ?
+            WHERE (c.fsrs_next_review IS NULL OR c.fsrs_next_review <= ?)
             AND c.import_validated = 1
             AND c.audio_status != 'failed'
             ORDER BY c.fsrs_next_review ASC
@@ -195,7 +194,7 @@ def submit_answer(session_id: str, answer: str | int | None, answer_type: str = 
         rating = _grade_answer(card_row, answer, answer_type, pronunciation_score, conn)
 
         # Update FSRS state
-        next_interval = _apply_fsrs_rating(card_row, rating, conn)
+        next_interval = _apply_fsrs_rating(card_row, rating, session_id, conn)
 
         # Log the review
         _log_review(card_id, session_id, rating, answer, pronunciation_score, conn)
@@ -304,6 +303,9 @@ def end_session(session_id: str) -> dict:
         session = query_one(conn, "SELECT * FROM sessions WHERE id = ?", (session_id,))
         if session is None:
             raise ValueError(f"Session {session_id} not found")
+
+        if session["status"] == "completed":
+            raise ValueError(f"Session {session_id} is already completed")
 
         execute(
             conn,
@@ -534,7 +536,7 @@ def get_settings(user_id: int = 1) -> dict:
         row = query_one(
             conn,
             "SELECT daily_review_cap, notification_time, session_timeout_minutes, "
-            "audio_voice, audio_rate, api_key FROM user_settings WHERE id = ?",
+            "audio_voice, audio_rate FROM user_settings WHERE id = ?",
             (user_id,),
         )
         if row is None:
@@ -627,7 +629,7 @@ def _grade_answer(card_row: sqlite3.Row, answer: Any, answer_type: str,
     # Text answer — simple exact match for v1
     # TODO: LLM-based grading for production answers
     if answer_type == "text":
-        correct = card_row["english_text"].strip().lower()
+        correct = card_row["italian_text"].strip().lower()
         given = str(answer).strip().lower()
         if given == correct:
             return "good"
@@ -652,7 +654,8 @@ def _get_correct_option(card_row: sqlite3.Row) -> int | None:
     return None
 
 
-def _apply_fsrs_rating(card_row: sqlite3.Row, rating: str, conn: sqlite3.Connection) -> str:
+def _apply_fsrs_rating(card_row: sqlite3.Row, rating: str, session_id: str,
+                     conn: sqlite3.Connection) -> str:
     """Apply an FSRS rating to a card. Updates fsrs_state_json and fsrs_next_review.
 
     Returns the next interval as a human-readable string.
@@ -673,14 +676,14 @@ def _apply_fsrs_rating(card_row: sqlite3.Row, rating: str, conn: sqlite3.Connect
         card = FSRSCard()
 
     scheduler = Scheduler()
-    updated_card, log = scheduler.review(card, fsrs_rating)
+    updated_card, log = scheduler.review_card(card, fsrs_rating)
 
     # Store previous state for undo
     execute(
         conn,
         "INSERT INTO session_undo (session_id, card_id, previous_fsrs_state_json, previous_fsrs_next_review) "
         "VALUES (?, ?, ?, ?)",
-        ("", card_row["id"], card_row["fsrs_state_json"], card_row["fsrs_next_review"]),
+        (session_id, card_row["id"], card_row["fsrs_state_json"], card_row["fsrs_next_review"]),
     )
 
     # Update card with new FSRS state

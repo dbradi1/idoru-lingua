@@ -87,7 +87,7 @@ CREATE TABLE IF NOT EXISTS cards (
 CREATE TABLE IF NOT EXISTS review_log (
     id INTEGER PRIMARY KEY,
     card_id INTEGER NOT NULL REFERENCES cards(id),
-    session_id INTEGER REFERENCES sessions(id),
+    session_id TEXT REFERENCES sessions(id),
     rating TEXT NOT NULL,         -- 'again'|'hard'|'good'|'easy'
     answer_text TEXT,             -- what Drew typed/said
     grade_correct INTEGER,        -- LLM/MC/phoneme result
@@ -118,7 +118,7 @@ CREATE TABLE IF NOT EXISTS sessions (
 -- Undo support per #20. Stores previous FSRS state to revert last rating.
 CREATE TABLE IF NOT EXISTS session_undo (
     id INTEGER PRIMARY KEY,
-    session_id INTEGER NOT NULL REFERENCES sessions(id),
+    session_id TEXT NOT NULL REFERENCES sessions(id),
     card_id INTEGER NOT NULL,
     previous_fsrs_state_json TEXT,  -- full FSRS Card object before the rating
     previous_fsrs_next_review TEXT, -- due date before the rating
@@ -129,7 +129,7 @@ CREATE TABLE IF NOT EXISTS session_undo (
 -- Pre-warm pipeline state per #25.
 CREATE TABLE IF NOT EXISTS prewarm_log (
     id INTEGER PRIMARY KEY,
-    session_id INTEGER REFERENCES sessions(id),
+    session_id TEXT REFERENCES sessions(id),
     cards_due INTEGER,
     cards_validated INTEGER,
     cards_skipped INTEGER,

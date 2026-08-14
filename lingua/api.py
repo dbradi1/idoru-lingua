@@ -43,6 +43,9 @@ security = HTTPBearer(auto_error=False)
 
 API_KEY = os.environ.get("LINGUA_API_KEY", "")
 
+if not API_KEY:
+    raise RuntimeError("LINGUA_API_KEY environment variable is not set — API cannot start without auth")
+
 
 # ─── Auth middleware ──────────────────────────────────────────────────────────
 
@@ -205,18 +208,13 @@ async def submit_audio(
     if audio.content_type and audio.content_type not in allowed_types:
         return error_response("UNSUPPORTED_AUDIO_FORMAT", "Supported: m4a, wav, mp3", 415)
 
-    # Save to temp file and assess pronunciation
     # TODO: Full pronunciation assessment via Azure
-    # For v1, return grade based on pronunciation score
-    try:
-        return engine.submit_answer(session_id, None, answer_type="audio")
-    except ValueError as e:
-        msg = str(e)
-        if "not found" in msg:
-            return error_response("SESSION_NOT_FOUND", msg, 404)
-        if "not active" in msg:
-            return error_response("SESSION_NOT_ACTIVE", msg, 409)
-        return error_response("VALIDATION_ERROR", msg, 422)
+    # Return 501 until pronunciation scoring is implemented — don't silently grade as "again"
+    return error_response(
+        "INTERNAL_ERROR",
+        "Audio pronunciation scoring not yet implemented",
+        501,
+    )
 
 
 @app.post("/api/v1/session/{session_id}/skip", dependencies=[Depends(verify_api_key)])

@@ -13,7 +13,12 @@ import os
 import time
 from pathlib import Path
 
-import azure.cognitiveservices.speech as speechsdk
+try:
+    import azure.cognitiveservices.speech as speechsdk
+    AZURE_AVAILABLE = True
+except ImportError:
+    AZURE_AVAILABLE = False
+    speechsdk = None
 
 from .db import get_connection
 
@@ -38,6 +43,11 @@ def _generate_tts(text: str, output_path: Path) -> float:
     """
     logger.info("TTS generation started (text=%s..., out=%s)", text[:40], output_path)
 
+    if not AZURE_AVAILABLE:
+        raise RuntimeError("Azure Speech SDK is not installed — cannot generate TTS")
+    if not AZURE_SPEECH_KEY:
+        raise RuntimeError("AZURE_SPEECH_KEY is not set — cannot generate TTS")
+
     speech_config = speechsdk.SpeechConfig(
         subscription=AZURE_SPEECH_KEY, region=AZURE_SPEECH_REGION
     )
@@ -52,7 +62,7 @@ def _generate_tts(text: str, output_path: Path) -> float:
     )
 
     start = time.monotonic()
-    result = synthesizer.speak_text_async(text).get()
+    result = synthesizer.speak_text_async(text).get(timeout=AZURE_TIMEOUT_SECONDS)
     elapsed = time.monotonic() - start
 
     if result.reason == speechsdk.ResultReason.SynthesizingAudioCompleted:
@@ -67,10 +77,6 @@ def _generate_tts(text: str, output_path: Path) -> float:
             cancellation.error_code,
         )
         raise RuntimeError(f"Azure TTS canceled: {cancellation.error_details}")
-
-    if elapsed > AZURE_TIMEOUT_SECONDS:
-        logger.error("TTS generation timed out after %.1fs", elapsed)
-        raise TimeoutError(f"Azure TTS timed out after {AZURE_TIMEOUT_SECONDS}s")
 
     raise RuntimeError(f"Azure TTS failed with reason: {result.reason}")
 
