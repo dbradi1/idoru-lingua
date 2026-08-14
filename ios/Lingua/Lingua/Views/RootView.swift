@@ -41,7 +41,8 @@ struct RootView: View {
                 }
                 .tag(4)
         }
-        .tint(.blue)
+        .tint(.linguaAccent)
+        .background(Color.linguaBackground)
         .overlay(alignment: .top) {
             if !appState.isOnline {
                 OfflineBanner()

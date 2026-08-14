@@ -116,7 +116,7 @@ struct SessionResumeCard: View {
             HStack {
                 Image(systemName: "arrow.uturn.backward.circle.fill")
                     .font(.title2)
-                    .foregroundColor(.blue)
+                    .foregroundColor(.linguaBlue)
                 VStack(alignment: .leading) {
                     Text("Session in progress")
                         .font(.headline)
@@ -130,7 +130,7 @@ struct SessionResumeCard: View {
                 .buttonStyle(.bordered)
         }
         .padding()
-        .background(Color.blue.opacity(0.1))
+        .background(Color.linguaSurfaceLight)
         .cornerRadius(12)
     }
 }
@@ -163,7 +163,7 @@ struct CityCard: View {
                 .foregroundColor(.secondary)
         }
         .padding()
-        .background(Color.gray.opacity(0.1))
+        .background(Color.linguaSurface)
         .cornerRadius(12)
     }
 }

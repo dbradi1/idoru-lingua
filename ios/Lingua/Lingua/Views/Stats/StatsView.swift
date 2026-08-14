@@ -37,13 +37,13 @@ struct StatsView: View {
                                     x: .value("Date", point.date),
                                     y: .value("Reviews", point.reviews)
                                 )
-                                .foregroundStyle(.blue)
+                                .foregroundStyle(.linguaBlue)
                             }
                             .frame(height: 200)
                         }
                     }
                     .padding()
-                    .background(Color.gray.opacity(0.1))
+                    .background(Color.linguaSurface)
                     .cornerRadius(12)
 
                     // Accuracy
@@ -57,10 +57,10 @@ struct StatsView: View {
                             Text("\(accuracy)% correct")
                                 .font(.title2)
                                 .fontWeight(.bold)
-                                .foregroundColor(accuracy >= 80 ? .green : accuracy >= 60 ? .orange : .red)
+                                .foregroundColor(accuracy >= 80 ? .linguaGood : accuracy >= 60 ? .linguaHard : .linguaAgain)
                         }
                         .padding()
-                        .background(Color.gray.opacity(0.1))
+                        .background(Color.linguaSurface)
                         .cornerRadius(12)
                     }
 
@@ -86,7 +86,7 @@ struct StatsView: View {
                         }
                     }
                     .padding()
-                    .background(Color.gray.opacity(0.1))
+                    .background(Color.linguaSurface)
                     .cornerRadius(12)
                 }
                 .padding()

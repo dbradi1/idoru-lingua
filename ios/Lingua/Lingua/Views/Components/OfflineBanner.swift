@@ -27,7 +27,7 @@ struct OfflineBanner: View {
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 10)
-            .background(Color.orange.opacity(0.9))
+            .background(Color.linguaHard)
             .foregroundColor(.white)
         }
     }

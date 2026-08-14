@@ -68,10 +68,10 @@ struct CityRow: View {
             if city.isUnlocked == 1 {
                 if city.badgeEarned == 1 {
                     Image(systemName: "checkmark.seal.fill")
-                        .foregroundColor(.yellow)
+                        .foregroundColor(.linguaGold)
                 } else if city.gateReached == 1 {
                     Image(systemName: "checkmark.circle.fill")
-                        .foregroundColor(.green)
+                        .foregroundColor(.linguaGood)
                 } else {
                     Image(systemName: "circle")
                         .foregroundColor(.blue)
@@ -82,7 +82,7 @@ struct CityRow: View {
             }
         }
         .padding()
-        .background(Color.gray.opacity(0.1))
+        .background(Color.linguaSurface)
         .cornerRadius(12)
     }
 }

@@ -105,7 +105,7 @@ struct CardSessionView: View {
                     .font(.caption)
                     .padding(.horizontal, 12)
                     .padding(.vertical, 4)
-                    .background(Color.blue.opacity(0.2))
+                    .background(Color.linguaAccent.opacity(0.2))
                     .cornerRadius(8)
             }
             .padding(.vertical, 40)
@@ -291,10 +291,10 @@ struct GradeResultView: View {
 
     var gradeColor: Color {
         switch result.grade {
-        case "again": return .red
-        case "hard": return .orange
-        case "good": return .green
-        case "easy": return .blue
+        case "again": return .linguaAgain
+        case "hard": return .linguaHard
+        case "good": return .linguaGood
+        case "easy": return .linguaEasy
         default: return .gray
         }
     }
@@ -332,7 +332,7 @@ struct GradeResultView: View {
                             Text(phoneme.sound)
                                 .font(.caption)
                             ProgressView(value: phoneme.score, total: 100)
-                                .tint(phoneme.score >= 60 ? .green : .orange)
+                                .tint(phoneme.score >= 60 ? .linguaGood : .linguaHard)
                         }
                     }
                 }
@@ -368,7 +368,7 @@ struct SessionCompleteView: View {
                 }
             }
             .padding()
-            .background(Color.gray.opacity(0.1))
+            .background(Color.linguaSurface)
             .cornerRadius(12)
 
             Button("Done", action: onDismiss)
