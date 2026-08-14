@@ -112,7 +112,8 @@ final class APIClient: ObservableObject {
 
         do {
             let (data, response) = try await session.data(for: request)
-            return try handleResponse(data, response)
+            let result: HealthResponse = try handleResponse(data, response)
+            return result
         } catch let error as APIError {
             throw error
         } catch {
@@ -129,7 +130,8 @@ final class APIClient: ObservableObject {
     func getDueCards() async throws -> [Card] {
         let request = try makeRequest(method: "GET", path: "/session/due")
         let (data, response) = try await session.data(for: request)
-        return try handleResponse<DueCardsResponse>(data, response).cards
+        let resp: DueCardsResponse = try handleResponse(data, response)
+        return resp.cards
     }
 
     struct StartSessionRequest: Encodable {
@@ -285,7 +287,8 @@ final class APIClient: ObservableObject {
     func getCardExplanation(cardId: Int) async throws -> String? {
         let request = try makeRequest(method: "GET", path: "/card/\(cardId)/explain")
         let (data, response) = try await session.data(for: request)
-        return try handleResponse<ExplainResponse>(data, response).grammarNote
+        let resp: ExplainResponse = try handleResponse(data, response)
+        return resp.grammarNote
     }
 
     // MARK: - Progress
@@ -297,7 +300,8 @@ final class APIClient: ObservableObject {
     func getProgressOverview() async throws -> [CityProgress] {
         let request = try makeRequest(method: "GET", path: "/progress/overview")
         let (data, response) = try await session.data(for: request)
-        return try handleResponse<ProgressOverviewResponse>(data, response).cities
+        let resp: ProgressOverviewResponse = try handleResponse(data, response)
+        return resp.cities
     }
 
     struct ClustersResponse: Decodable {
@@ -308,7 +312,8 @@ final class APIClient: ObservableObject {
     func getClusterStrength(cityId: Int) async throws -> [ClusterStrength] {
         let request = try makeRequest(method: "GET", path: "/progress/clusters/\(cityId)")
         let (data, response) = try await session.data(for: request)
-        return try handleResponse<ClustersResponse>(data, response).clusters
+        let resp: ClustersResponse = try handleResponse(data, response)
+        return resp.clusters
     }
 
     // MARK: - Stats
@@ -320,7 +325,8 @@ final class APIClient: ObservableObject {
     func getRetention(days: Int = 30) async throws -> [RetentionPoint] {
         let request = try makeRequest(method: "GET", path: "/stats/retention?range=\(days)")
         let (data, response) = try await session.data(for: request)
-        return try handleResponse<RetentionResponse>(data, response).data
+        let resp: RetentionResponse = try handleResponse(data, response)
+        return resp.data
     }
 
     struct HistoryResponse: Decodable {
@@ -330,7 +336,8 @@ final class APIClient: ObservableObject {
     func getHistory(days: Int = 30) async throws -> [RetentionPoint] {
         let request = try makeRequest(method: "GET", path: "/stats/history?range=\(days)")
         let (data, response) = try await session.data(for: request)
-        return try handleResponse<HistoryResponse>(data, response).data
+        let resp: HistoryResponse = try handleResponse(data, response)
+        return resp.data
     }
 
     struct LeechesResponse: Decodable {
@@ -340,7 +347,8 @@ final class APIClient: ObservableObject {
     func getLeeches() async throws -> [LeechCard] {
         let request = try makeRequest(method: "GET", path: "/stats/leeches")
         let (data, response) = try await session.data(for: request)
-        return try handleResponse<LeechesResponse>(data, response).leeches
+        let resp: LeechesResponse = try handleResponse(data, response)
+        return resp.leeches
     }
 
     // MARK: - Practice
@@ -348,7 +356,8 @@ final class APIClient: ObservableObject {
     func getPracticeQuiz() async throws -> [Card] {
         let request = try makeRequest(method: "GET", path: "/practice/quiz")
         let (data, response) = try await session.data(for: request)
-        return try handleResponse<DueCardsResponse>(data, response).cards
+        let resp: DueCardsResponse = try handleResponse(data, response)
+        return resp.cards
     }
 
     struct FreePracticeResponse: Decodable {
@@ -358,7 +367,8 @@ final class APIClient: ObservableObject {
     func getFreePractice(cityId: Int) async throws -> [Card] {
         let request = try makeRequest(method: "GET", path: "/practice/free/\(cityId)")
         let (data, response) = try await session.data(for: request)
-        return try handleResponse<FreePracticeResponse>(data, response).cards
+        let resp: FreePracticeResponse = try handleResponse(data, response)
+        return resp.cards
     }
 
     // MARK: - Settings
