@@ -5,6 +5,7 @@
 //  Per SOUL.md: warm, not perky. Concise feedback. Italian-first progression.
 
 import SwiftUI
+import AVFAudio
 
 struct CardSessionView: View {
     @EnvironmentObject var appState: AppState
@@ -18,6 +19,8 @@ struct CardSessionView: View {
     @State private var sessionEnded = false
     @State private var sessionSummary: APIClient.SessionSummary?
     @State private var errorMessage: String?
+    @State private var isPlayingAudio = false
+    @State private var audioPlayer: AVAudioPlayer?
 
     var body: some View {
         NavigationStack {
@@ -89,10 +92,20 @@ struct CardSessionView: View {
             // Card content — show English as prompt, hide Italian until graded
             VStack(spacing: 20) {
                 if showingResult {
-                    // After grading: show the Italian text (the answer)
-                    Text(card.italianText)
-                        .font(.linguaCard)
-                        .multilineTextAlignment(.center)
+                    // After grading: show the Italian text with audio button
+                    HStack(spacing: 12) {
+                        Text(card.italianText)
+                            .font(.linguaCard)
+                            .multilineTextAlignment(.center)
+                        
+                        Button {
+                            Task { await playAudio(for: card.id) }
+                        } label: {
+                            Image(systemName: isPlayingAudio ? "speaker.wave.2.fill" : "speaker.wave.1.fill")
+                                .font(.title2)
+                                .foregroundColor(.linguaAccent)
+                        }
+                    }
                 }
 
                 Text(card.englishText)
@@ -265,6 +278,22 @@ struct CardSessionView: View {
         } else {
             // Session complete
             Task { await endSession() }
+        }
+    }
+
+    private func playAudio(for cardId: Int) async {
+        do {
+            isPlayingAudio = true
+            let url = try await APIClient.shared.getCardAudio(cardId: cardId)
+            audioPlayer = try AVAudioPlayer(contentsOf: url)
+            audioPlayer?.play()
+            // Reset icon when playback finishes
+            DispatchQueue.main.asyncAfter(deadline: .now() + (audioPlayer?.duration ?? 2.0)) {
+                isPlayingAudio = false
+            }
+        } catch {
+            isPlayingAudio = false
+            errorMessage = "Audio unavailable"
         }
     }
 
