@@ -251,7 +251,7 @@ assess_pronunciation(audio_path, reference_text) → PronunciationScore  # phone
 
 ## Open To-Do Items (tracked in GitHub Issues)
 - **#2** Azure Speech resource creation ✅ (completed Aug 13)
-- **#3** Lingua sub-agent setup in OpenClaw config
+- **#3** Lingua sub-agent setup ✅ (closed — superseded by iOS pivot, app is standalone)
 - **#4** Install Xcode on MacBook Pro ✅ (completed Aug 14)
 - **#5** Reconcile zombie decisions ✅ (completed Aug 13)
 - **#6** Audio format .ogg → .m4a ✅ (completed Aug 13)
