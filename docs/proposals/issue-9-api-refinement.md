@@ -1,9 +1,16 @@
 # Proposal: API Endpoint Refinement (Issue #9)
 
-**Status:** DRAFT — awaiting Drew review  
+**Status:** APPROVED — all 5 open questions resolved  
 **Date:** 2026-08-14  
 **Supersedes portions of:** Decision #28 (API Layer: FastAPI + Thin REST)  
 **GitHub Issue:** [#9](https://github.com/dbradi1/idoru-lingua/issues/9)
+
+**Drew's decisions on open questions:**
+1. Session model: **Option A (thin mapper)** ✅
+2. Skip behavior: **Neutral (no FSRS penalty)** ✅
+3. Health endpoint auth: **No auth** ✅
+4. Audio formats: **m4a/wav/mp3 (no ogg)** ✅
+5. Settings split: **Approved as proposed** ✅
 
 ---
 
@@ -345,7 +352,7 @@ Same format list and limits as pronunciation assessment. The audio is scored for
 
 ## Migration plan
 
-If approved:
+Next steps:
 
 1. **Update README.md** — append this as "Decision #28 Amendment — Issue #9" section, mark the original #28 endpoints table as "see amendment" where changed
 2. **Update Issue #9** — comment with decision summary, close issue

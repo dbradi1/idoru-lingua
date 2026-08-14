@@ -890,6 +890,135 @@ The app must handle network failures gracefully. Drew opens this app over coffee
 - Single-user app over Tailscale — not needed
 - If ever exposed beyond Tailscale, add rate limiting at that point
 
+### 28a. Amendment — API Endpoint Refinement (Issue #9) ✅
+
+**Date:** 2026-08-14
+**Supersedes portions of:** Decision #28 endpoints, error handling, and session model
+**Status:** Approved by Drew — 5/5 open questions resolved
+
+This amendment refines the API spec from Decision #28. The original #28 spec is preserved above; the changes below take precedence where they overlap.
+
+#### 1. Split submit endpoint
+
+The single `POST /api/v1/session/{id}/submit` is replaced by three typed endpoints:
+
+- `POST /api/v1/session/{id}/submit/text` — typed answers (Italian text input)
+- `POST /api/v1/session/{id}/submit/mc` — multiple choice (selected option index)
+- `POST /api/v1/session/{id}/submit/audio` — spoken answers (multipart upload, m4a/wav/mp3, max 10 MB, max 60s)
+
+**Rationale:** Distinct validation rules per answer type, cleaner OpenAPI codegen for Swift models, and specific error messages.
+
+**Request/response shapes:**
+
+Text:
+```json
+// Request: { "answer": "io mangio la mela" }
+// Response: { "card_id": 42, "grade": "again", "next_interval": "0s", "next_card": {...} | null }
+```
+
+Multiple choice:
+```json
+// Request: { "selected_option": 2 }
+// Response: { "card_id": 42, "grade": "good", "next_interval": "10m", "correct_option": 2, "next_card": {...} | null }
+```
+
+Audio (multipart/form-data):
+```
+Fields: audio (file), duration (float, optional)
+// Response: { "card_id": 42, "grade": "good", "next_interval": "10m", "pronunciation": { "overall_score": 78, "phonemes": [...] } | null, "next_card": {...} | null }
+```
+
+#### 2. New endpoints
+
+**GET /api/v1/session/active** — returns active session + current card for app resume. Returns 200 with `{ "session": null, "current_card": null }` when no session is active (not 404).
+
+**POST /api/v1/session/{id}/skip** — explicit skip, advances queue without grading. Skip is **FSRS-neutral** — no scheduling impact. Card returns to review queue unchanged.
+
+**GET /api/v1/health** — liveness check, **no auth required**. Returns `{ "status": "ok", "version": "0.1.0", "azure_status": "reachable|degraded|unreachable" }`. Azure status is cached (60s refresh). Target response: <50ms.
+
+#### 3. Session model — Thin Mapper (Option A)
+
+Session state lives entirely in `lingua.db`. The API layer translates between session_id-based REST endpoints and card_id-based engine functions. No in-memory session objects.
+
+```sql
+CREATE TABLE sessions (
+    id TEXT PRIMARY KEY,
+    created_at TEXT NOT NULL,
+    status TEXT NOT NULL,             -- 'in_progress' | 'completed' | 'abandoned'
+    card_ids_json TEXT NOT NULL,      -- JSON array of card IDs in queue order
+    current_index INTEGER NOT NULL DEFAULT 0,
+    cards_completed INTEGER NOT NULL DEFAULT 0,
+    ended_at TEXT
+);
+```
+
+**Session lifecycle:**
+1. `POST /session/start` → create row, status `in_progress`
+2. `submit/*` or `skip` → increment `current_index`, bump `cards_completed`
+3. `POST /session/{id}/end` → status `completed`, set `ended_at`
+4. `GET /session/active` → query `WHERE status = 'in_progress' ORDER BY created_at DESC LIMIT 1`
+5. Abandoned sessions (no activity for 1 hour) → auto-marked `abandoned` by cleanup tick
+
+**Why thin mapper over stateful object:** Single-user app, local SQLite (<1ms queries), crash-safe by default (state always durable). No sync bugs — one source of truth.
+
+#### 4. Machine-readable error codes
+
+All error responses include a `code` field alongside the human message:
+
+```json
+{ "error": "Card not found", "code": "CARD_NOT_FOUND" }
+```
+
+| Code | HTTP | Meaning |
+|------|------|---------|
+| `UNAUTHORIZED` | 401 | Missing or invalid API key |
+| `SESSION_NOT_FOUND` | 404 | Session ID doesn't exist |
+| `SESSION_NOT_ACTIVE` | 409 | Session exists but isn't in_progress |
+| `CARD_NOT_FOUND` | 404 | Card ID doesn't exist |
+| `VALIDATION_ERROR` | 422 | Malformed request body |
+| `ANSWER_TOO_LONG` | 422 | Text answer exceeds 500 chars |
+| `AUDIO_TOO_LARGE` | 413 | Audio file exceeds 10 MB |
+| `UNSUPPORTED_AUDIO_FORMAT` | 415 | Audio format not in accepted list |
+| `AZURE_TIMEOUT` | 504 | Azure Speech didn't respond in 30s |
+| `AZURE_ERROR` | 502 | Azure returned an error |
+| `DB_ERROR` | 500 | SQLite operation failed |
+| `INTERNAL_ERROR` | 500 | Unhandled exception |
+| `RATE_LIMITED` | 429 | Reserved — not active in v1 |
+
+#### 5. Accepted audio formats
+
+| Format | Notes |
+|--------|-------|
+| m4a | **Preferred** — native iOS recording format |
+| wav | Uncompressed, Azure-native |
+| mp3 | Supported but lossy (may degrade phoneme scoring) |
+
+**Limits:** 10 MB max size, 60s max duration, 0.5s minimum, 16 kHz+ sample rate recommended.
+**Not supported:** ogg, flac, aiff (would require server-side ffmpeg transcoding).
+
+#### 6. Settings boundary — server-side vs app-local
+
+**Server-side (via GET/PATCH /api/v1/settings):**
+
+| Setting | Default | Why server-side |
+|---------|---------|----------------|
+| daily_card_cap | 20 | FSRS scheduling depends on it |
+| notification_time | "08:00" | Server triggers morning push |
+| session_timeout_minutes | 10 | Server enforces auto-end |
+| audio_voice | "it-IT-LunaNeural" | Server generates TTS |
+| audio_rate | 1.0 | Server generates TTS |
+
+**App-local (iOS UserDefaults/Keychain — no API endpoint):**
+
+| Setting | Default | Why app-local |
+|---------|---------|---------------|
+| api_key | — | Security — Keychain only |
+| haptic_feedback | true | Pure UI preference |
+| card_font_size | "medium" | Pure UI preference |
+| last_session_id | nil | Resume hint (server is source of truth) |
+| cached_progress | nil | Offline display fallback |
+| pronunciation_auto_play | true | UI behavior |
+
 ### 29. Anki Import Pipeline ✅
 
 **Decision:** Four-phase pipeline: extract from Anki `.apkg` → validate against Lingua schema → load into `lingua.db` → generate TTS for cards without audio. Uses in-memory Python objects between phases (no JSONL intermediate). Transactional with batch-level rollback.

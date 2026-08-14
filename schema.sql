@@ -94,18 +94,17 @@ CREATE TABLE IF NOT EXISTS review_log (
 );
 
 -- ─── 6. sessions ────────────────────────────────────────────────────────────
--- Session state, server-side per #28. Replaces pending_card_id from #4.
+-- Session state, server-side per #28 + #9 amendment (thin mapper, SQLite-backed).
+-- All session state lives here — no in-memory session objects. Crash-safe by default.
 CREATE TABLE IF NOT EXISTS sessions (
-    id INTEGER PRIMARY KEY,
+    id TEXT PRIMARY KEY,                 -- UUID or sess_<random> per #9
     user_id INTEGER DEFAULT 1,
-    card_ids TEXT NOT NULL,       -- JSON array of card IDs in queue order
-    current_index INTEGER DEFAULT 0,
-    status TEXT DEFAULT 'pending_start',  -- 'pending_start'|'active'|'completed'|'expired'|'cancelled'
-    source TEXT,                  -- 'morning_cron'|'on_demand'|'leech_review'|'free_practice'|'pronunciation_drill'
+    card_ids_json TEXT NOT NULL,         -- JSON array of card IDs in queue order
+    current_index INTEGER NOT NULL DEFAULT 0,
+    cards_completed INTEGER NOT NULL DEFAULT 0,
+    status TEXT NOT NULL DEFAULT 'in_progress',  -- 'in_progress'|'completed'|'abandoned' per #9
+    source TEXT,                         -- 'morning_cron'|'on_demand'|'leech_review'|'free_practice'|'pronunciation_drill'
     total_cards INTEGER,
-    cards_good INTEGER DEFAULT 0,
-    cards_hard INTEGER DEFAULT 0,
-    cards_again INTEGER DEFAULT 0,
     started_at TEXT,
     ended_at TEXT,
     created_at TEXT DEFAULT (datetime('now'))
