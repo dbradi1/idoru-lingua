@@ -1,0 +1,15 @@
+[Unit]
+Description=Idoru Lingua API — Italian learning REST API
+After=network.target
+
+[Service]
+Type=simple
+User=drew
+WorkingDirectory=/home/drew/github-repos/idoru-lingua
+EnvironmentFile=/home/drew/.env
+ExecStart=/home/drew/.lingua-venv/bin/uvicorn lingua.api:app --host 100.66.129.43 --port 5051
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
