@@ -6,7 +6,7 @@
 --   fsrs_next_review is a real column for the only query we run against FSRS state
 --   All other FSRS fields (stability, difficulty, reps, lapses, state) live inside the JSON blob
 --
--- Maps to architecture decisions #1–#28.
+-- Maps to architecture decisions #1–#29.
 
 -- ─── Pragmas ────────────────────────────────────────────────────────────────
 -- Run these on every connection:
@@ -72,6 +72,7 @@ CREATE TABLE IF NOT EXISTS cards (
     leech_flagged_at TEXT,
     -- Import tracking (#17)
     import_source TEXT,           -- 'anki_travel_deck'|'frequency_500'|'manual'
+    import_batch TEXT,            -- batch ID for rollback (e.g., '2026-08-14-roma-001')
     import_validated INTEGER DEFAULT 1,
     created_at TEXT DEFAULT (datetime('now')),
     updated_at TEXT DEFAULT (datetime('now'))

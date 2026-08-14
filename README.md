@@ -250,13 +250,17 @@ assess_pronunciation(audio_path, reference_text) → PronunciationScore  # phone
 - Whisper (local, existing) for free-form answer transcription
 
 ## Open To-Do Items (tracked in GitHub Issues)
-- **#2** Azure Speech resource creation (blocked on Drew's Azure login)
+- **#2** Azure Speech resource creation ✅ (completed Aug 13)
 - **#3** Lingua sub-agent setup in OpenClaw config
-- **#4** Install Xcode on MacBook Pro for native iOS development
-- **Drew to-do:** Create Telegram Lingua group chat (for notification channel)
-- **Drew to-do:** Review Lingua SOUL.md draft (emailed)
-- **Drew to-do:** Install Xcode (Issue #4)
-- **Remaining:** API layer design, Anki import process, Roma/Firenze content creation, iOS app build
+- **#4** Install Xcode on MacBook Pro ✅ (completed Aug 14)
+- **#5** Reconcile zombie decisions ✅ (completed Aug 13)
+- **#6** Audio format .ogg → .m4a ✅ (completed Aug 13)
+- **#7** Database schema ✅ (completed Aug 14)
+- **#8** Anki import process (Decision #29) ✅ (completed Aug 14)
+- **#9** API endpoint refinement
+- **#10** Lazy TTS generation
+- **Drew to-do:** Create Telegram Lingua group chat ✅ (completed Aug 13)
+- **Remaining:** Roma/Firenze content creation, iOS app build
 ### 13. City Map: 8 Cities (CEFR A1 → B2) ✅
 **Decision:** 8 cities, 46 skill clusters, ~840 cards. Progressive volume. Geographic spiral through Italy.
 
@@ -885,3 +889,92 @@ The app must handle network failures gracefully. Drew opens this app over coffee
 **No rate limiting (v1):**
 - Single-user app over Tailscale — not needed
 - If ever exposed beyond Tailscale, add rate limiting at that point
+
+### 29. Anki Import Pipeline ✅
+
+**Decision:** Four-phase pipeline: extract from Anki `.apkg` → validate against Lingua schema → load into `lingua.db` → generate TTS for cards without audio. Uses in-memory Python objects between phases (no JSONL intermediate). Transactional with batch-level rollback.
+
+**Why four phases:** Anki's `.apkg` format (zip + SQLite + media) is complex and version-dependent. A clean extraction step decouples us from Anki's internals. Validation runs against our schema, not Anki's. Load is transactional. TTS generation is deferred to a background batch since it's slow (~14 min for 840 cards) and non-blocking.
+
+**Phase 1: Extraction**
+- Anki `.apkg` files are zip archives containing: `collection.anki2` (SQLite DB with `notes` and `cards` tables) and `media` file manifest + media files
+- Parse `.apkg` as zip → extract `collection.anki2` → open as read-only SQLite
+- Extract notes into Python objects in memory (no intermediate JSONL file — we're reading SQLite and writing SQLite, an intermediate file is an unnecessary hop)
+- Extract media files (audio) to a temp directory for conversion in Phase 3
+- Map Anki note types to Lingua card types:
+  - **Tag-first mapping:** Use Anki note tags/model names to determine card type when available
+  - Tags containing "pronunciation" or "audio" → `pronunciation`
+  - Tags containing "grammar" or model named "Grammar" → `grammar`
+  - Basic (Italian↔English) with ≤ 3 words Italian → `vocab`
+  - Basic with > 3 words Italian → `phrase`
+  - **Length heuristic is fallback only** — most Anki decks are well-tagged; if the travel deck isn't, we fall back to word count
+- Output: list of `ExtractedCard` objects in memory + media files in temp dir
+
+**Phase 2: Validation (per #17 Stage 1)**
+- Run `validate_import(cards)` on the in-memory objects
+- Check for duplicates (same `italian_text`) → skip, log
+- Check for missing fields (no Italian, no English, no card type) → skip, log
+- Check for encoding issues (mojibake, garbled characters) → skip, log
+- Check audio file integrity (can open and read the file) → skip bad audio, keep card
+- Near-duplicates (accents, capitalization differences) → normalize and compare, flag for review
+- Output: `ImportReport` with counts: `imported`, `flagged`, `skipped`, `errors`
+- Flagged cards are not rejected — they're loaded with `import_validated = 0` for Drew to review
+
+**Phase 3: Load (transactional)**
+- All valid + flagged cards inserted into `lingua.db` in a single transaction
+- Flagged cards get `import_validated = 0`; clean cards get `import_validated = 1`
+- All cards tagged with `import_source` (`'anki_travel_deck'` | `'anki_frequency_500'` | `'manual'`) and `import_batch` (e.g., `'2026-08-14-roma-001'`)
+- Audio files converted to `.m4a` via ffmpeg (Anki decks ship .mp3 and .ogg; we want .m4a for iOS native support per Decision #6 fix)
+  - This is an explicit pipeline step, not an afterthought — mixed audio formats in production is a known footgun
+  - Converted files moved to cache directory alongside TTS audio
+- FSRS state initialized as `new` for all imported cards (empty `fsrs_state_json`, null `fsrs_next_review`)
+- If any insert fails, entire transaction rolls back — no partial imports
+
+**Phase 4: TTS generation (background)**
+- For all imported cards without Anki audio, generate Azure Luna TTS (`it-IT-LunaNeural`)
+- Batch generation: ~840 cards × ~1 second/card ≈ 14 minutes one-time
+- Runs as a background job after import completes — doesn't block the CLI
+- Audio cached as `.m4a` files, reused forever (per #14)
+
+**Content filtering (#9):**
+- "Italian Travel and Small Talk for Beginners" (~200 cards) — filter out low-value cards (obscure words, tourist-only phrases)
+- Top 500 frequency words from 5000+ deck — filter to useful words for Drew's use case (talking to Italians, not passing exams)
+- Filtering is manual: Drew reviews the flagged list via CLI before final approval
+- Target: ~700 quality cards from ~7000 raw Anki cards
+
+**Duplicate handling:**
+- Same `italian_text` → skip the duplicate, log it
+- Same `english_text` but different `italian_text` → keep both (synonyms are valid)
+- Near-duplicates (accents, capitalization) → normalize and compare, flag for review
+
+**Audio from Anki:**
+- If Anki deck includes native speaker audio, prefer it over TTS for `pronunciation` cards (native speaker > TTS for pronunciation work)
+- For non-pronunciation cards, TTS Luna is fine (consistent voice across the app)
+- Store both when available, tag with `audio_source: 'anki'` | `'azure_tts'`
+
+**CLI interface:**
+```bash
+# Extract + validate + load in one command
+python -m lingua.import --apkg deck.apkg --city roma --filter
+
+# Review flagged cards (shows italian_text, english_text, flag reason)
+python -m lingua.import --review-flagged
+
+# Approve flagged cards (sets import_validated = 1)
+python -m lingua.import --approve [--card-ids 1,2,3 | --all]
+
+# Rollback an entire import batch
+python -m lingua.import --rollback 2026-08-14-roma-001
+```
+
+**Rollback:**
+- Import is transactional — if validation fails partway, no partial imports
+- `--rollback <batch_id>` deletes all cards with matching `import_batch` value, plus their review logs and audio files
+- Batch ID format: `YYYY-MM-DD-city-NNN` (date, city name, sequence number for re-imports)
+- Rollback is irreversible — CLI prompts for confirmation
+
+**Schema additions (to support this decision):**
+- `import_batch TEXT` column added to `cards` table — stores batch ID for rollback
+- `import_source` and `import_validated` columns already in schema (Decision #7)
+- No staging table — flagged cards live in `cards` with `import_validated = 0`, filtered out of review queries by default
+- No `import_batches` table — batch metadata is derivable from `SELECT DISTINCT import_batch, import_source FROM cards`. For a one-time import operation, a dedicated table is overengineering
