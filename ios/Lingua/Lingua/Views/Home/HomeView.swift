@@ -44,49 +44,14 @@ struct HomeView: View {
         .task { await loadData() }
     }
 
-    // MARK: - Header (coral background)
+    // MARK: - Header (shared coral component)
 
     private var headerSection: some View {
-        VStack(spacing: 20) {
-            // Greeting + journey icons
-            HStack {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Ciao,")
-                        .font(.system(size: 20, weight: .regular, design: .rounded))
-                        .foregroundColor(.white.opacity(0.9))
-                    Text("Drew! 🇮🇹")
-                        .font(.system(size: 28, weight: .bold, design: .rounded))
-                        .foregroundColor(.white)
-                }
-                Spacer()
-
-                // Journey city icons
-                HStack(spacing: 6) {
-                    ForEach(cities.prefix(4)) { city in
-                        Text(city.nameEmoji ?? "🏙️")
-                            .font(.system(size: 20))
-                            .opacity(city.isUnlocked == 1 ? 1.0 : 0.3)
-                    }
-                }
-            }
-            .padding(.horizontal, 24)
-            .padding(.top, 60)
-
-            // Stats cards row
-            HStack(spacing: 12) {
-                StatCard(icon: "🔥", value: "0", label: "day streak")
-                StatCard(icon: "⚡️", value: "\(reviewCount)", label: "XP total")
-                StatCard(icon: "📚", value: "\(wordsLearned)", label: "words")
-            }
-            .padding(.horizontal, 24)
-            .padding(.bottom, 28)
-        }
-        .background(
-            LinearGradient(
-                colors: [Color.linguaPrimary, Color.linguaPrimary.opacity(0.85)],
-                startPoint: .top,
-                endPoint: .bottom
-            )
+        SharedHeader(
+            streak: 0,
+            xp: reviewCount,
+            words: wordsLearned,
+            cities: cities
         )
     }
 
@@ -161,30 +126,6 @@ struct HomeView: View {
         } catch {
             // Silently fail — offline banner handles UI
         }
-    }
-}
-
-// MARK: - Stat Card
-
-private struct StatCard: View {
-    let icon: String
-    let value: String
-    let label: String
-
-    var body: some View {
-        VStack(spacing: 6) {
-            Text(icon)
-                .font(.system(size: 24))
-            Text(value)
-                .font(.system(size: 20, weight: .bold, design: .rounded))
-                .foregroundColor(.white)
-            Text(label)
-                .font(.system(size: 11, weight: .medium))
-                .foregroundColor(.white.opacity(0.8))
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 14)
-        .background(Color.white.opacity(0.15), in: .rect(cornerRadius: 14))
     }
 }
 

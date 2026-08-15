@@ -20,6 +20,9 @@ struct CardSessionView: View {
     @State private var isPlayingAudio = false
     @State private var audioPlayer: AVAudioPlayer?
     @State private var currentCardIndex = 0
+    @State private var headerCities: [CityProgress] = []
+    @State private var headerReviewCount = 0
+    @State private var headerWordsLearned = 0
 
     var body: some View {
         NavigationStack {
@@ -27,7 +30,15 @@ struct CardSessionView: View {
                 Color.linguaBackground
                     .ignoresSafeArea()
 
-                VStack {
+                VStack(spacing: 0) {
+                    // Shared coral header
+                    SharedHeader(
+                        streak: 0,
+                        xp: headerReviewCount,
+                        words: headerWordsLearned,
+                        cities: headerCities
+                    )
+
                     if !appState.isOnline {
                         offlineState
                     } else if session == nil && !isStarting {
@@ -58,6 +69,7 @@ struct CardSessionView: View {
             } message: {
                 Text(errorMessage ?? "")
             }
+            .task { await loadHeaderData() }
         }
     }
 
@@ -304,6 +316,14 @@ struct CardSessionView: View {
         } else {
             Task { await endSession() }
         }
+    }
+
+    private func loadHeaderData() async {
+        do {
+            headerCities = try await APIClient.shared.getProgressOverview()
+            let due = try await APIClient.shared.getDueCards()
+            headerReviewCount = due.count
+        } catch {}
     }
 
     private func playAudio(for cardId: Int) async {
