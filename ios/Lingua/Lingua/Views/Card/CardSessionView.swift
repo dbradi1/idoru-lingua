@@ -159,7 +159,7 @@ struct CardSessionView: View {
                 Text(card.englishText)
                     .font(.linguaTranslation)
                     .multilineTextAlignment(.center)
-                    .foregroundColor(.secondary)
+                    .foregroundColor(Color(red: 0.3, green: 0.3, blue: 0.3))
 
                 Text(card.cardType.uppercased())
                     .font(.linguaBadge)
@@ -218,19 +218,25 @@ struct CardSessionView: View {
 
                 Text("Type the Italian phrase above:")
                     .font(.system(size: 13, weight: .medium))
-                    .foregroundColor(.secondary)
+                    .foregroundColor(Color(red: 0.4, green: 0.4, blue: 0.4))
 
                 TextField("Type your answer...", text: $textAnswer)
-                    .textFieldStyle(.roundedBorder)
                     .font(.system(size: 17))
                     .autocorrectionDisabled()
                     .textInputAutocapitalization(.never)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 12)
+                    .background(Color.white, in: .rect(cornerRadius: 10))
+                    .overlay(
+                        .rect(cornerRadius: 10)
+                            .stroke(Color.black.opacity(0.7), lineWidth: 1.5)
+                    )
 
                 Button {
                     Task { await submitText() }
                 } label: {
                     Text("Submit")
-                        .font(.system(size: 17, weight: .semibold, design: .rounded))
+                        .font(.system(size: 17, weight: .bold, design: .rounded))
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 14)
