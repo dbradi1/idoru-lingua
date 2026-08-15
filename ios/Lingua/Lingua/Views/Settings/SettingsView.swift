@@ -82,7 +82,7 @@ struct SettingsView: View {
                     .font(.system(size: 30))
             }
             .frame(width: 60, height: 60)
-            .background(Color.linguaSurface2, in: .circle())
+            .background(Color.linguaSurface2, in: .rect(cornerRadius: 30))
             .overlay(
                 RoundedRectangle(cornerRadius: 30).stroke(Color.linguaPrimary, lineWidth: 2)
             )

@@ -84,7 +84,7 @@ struct JourneyTimelineRow: View {
                 }
             }
             .frame(width: 44, height: 44)
-            .background(circleColor, in: .circle())
+            .background(circleColor, in: .rect(cornerRadius: 22))
             .overlay(
                 RoundedRectangle(cornerRadius: 22).stroke(borderColor, lineWidth: 2)
             )

@@ -70,7 +70,7 @@ struct DarkTabBar: View {
                     .foregroundColor(active ? .white : .linguaSubtext)
                     .padding(.vertical, 8)
                     .padding(.horizontal, active ? 18 : 10)
-                    .background(active ? Color.linguaPrimary : Color.clear, in: Capsule())
+                    .background(active ? Color.linguaPrimary : Color.clear, in: .rect(cornerRadius: 20))
                     .animation(.easeInOut(duration: 0.2), value: active)
                 }
                 .frame(maxWidth: .infinity)
@@ -79,7 +79,7 @@ struct DarkTabBar: View {
         .padding(.horizontal, 6)
         .padding(.vertical, 8)
         .padding(.bottom, 24)
-        .background(Color.linguaSurface, in: Capsule())
+        .background(Color.linguaSurface, in: .rect(cornerRadius: 20))
         .padding(.horizontal, 16)
         .padding(.bottom, 4)
     }
