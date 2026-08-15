@@ -228,7 +228,7 @@ struct CardSessionView: View {
                     .padding(.vertical, 12)
                     .background(Color.white, in: .rect(cornerRadius: 10))
                     .overlay(
-                        .rect(cornerRadius: 10)
+                        RoundedRectangle(cornerRadius: 10)
                             .stroke(Color.black.opacity(0.7), lineWidth: 1.5)
                     )
 
