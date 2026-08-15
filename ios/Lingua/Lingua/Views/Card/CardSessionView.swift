@@ -89,22 +89,19 @@ struct CardSessionView: View {
                     .padding(.horizontal)
             }
 
-            // Card content — show English as prompt, hide Italian until graded
-            VStack(spacing: 20) {
-                if showingResult {
-                    // After grading: show the Italian text with audio button
-                    HStack(spacing: 12) {
-                        Text(card.italianText)
-                            .font(.linguaCard)
-                            .multilineTextAlignment(.center)
-                        
-                        Button {
-                            Task { await playAudio(for: card.id) }
-                        } label: {
-                            Image(systemName: isPlayingAudio ? "speaker.wave.2.fill" : "speaker.wave.1.fill")
-                                .font(.title2)
-                                .foregroundColor(.linguaAccent)
-                        }
+            // Card content — show Italian + English, with audio button
+            VStack(spacing: 16) {
+                HStack(spacing: 12) {
+                    Text(card.italianText)
+                        .font(.linguaCard)
+                        .multilineTextAlignment(.center)
+                    
+                    Button {
+                        Task { await playAudio(for: card.id) }
+                    } label: {
+                        Image(systemName: isPlayingAudio ? "speaker.wave.2.fill" : "speaker.wave.1.fill")
+                            .font(.title2)
+                            .foregroundColor(.linguaAccent)
                     }
                 }
 
@@ -152,7 +149,7 @@ struct CardSessionView: View {
         case "vocab", "phrase":
             // Text input
             VStack(spacing: 12) {
-                Text("Type the Italian translation:")
+                Text("Type the Italian phrase above:")
                     .font(.linguaCaption)
                     .foregroundColor(.secondary)
                 TextField("Type your answer...", text: $textAnswer)
@@ -177,7 +174,7 @@ struct CardSessionView: View {
         case "grammar":
             // Text input with explanation hint
             VStack(spacing: 12) {
-                Text("Type the Italian translation:")
+                Text("Type the Italian phrase above:")
                     .font(.linguaCaption)
                     .foregroundColor(.secondary)
                 if let note = card.grammarNote, !note.isEmpty {
@@ -387,20 +384,22 @@ struct SessionCompleteView: View {
 
             VStack(spacing: 8) {
                 StatRow(label: "Total", value: "\(summary.totalCards)")
-                StatRow(label: "Good", value: "\(summary.good)", color: .green)
-                StatRow(label: "Hard", value: "\(summary.hard)", color: .orange)
-                StatRow(label: "Again", value: "\(summary.again)", color: .red)
+                StatRow(label: "Good", value: "\(summary.good)", color: .linguaGood)
+                StatRow(label: "Hard", value: "\(summary.hard)", color: .linguaHard)
+                StatRow(label: "Again", value: "\(summary.again)", color: .linguaAgain)
                 if summary.easy > 0 {
-                    StatRow(label: "Easy", value: "\(summary.easy)", color: .blue)
+                    StatRow(label: "Easy", value: "\(summary.easy)", color: .linguaEasy)
                 }
             }
             .padding()
             .background(Color.linguaSurface)
             .cornerRadius(12)
 
-            Button("Done", action: onDismiss)
-                .buttonStyle(.borderedProminent)
-                .frame(maxWidth: .infinity)
+            HStack(spacing: 12) {
+                Button("Done", action: onDismiss)
+                    .buttonStyle(.bordered)
+                    .frame(maxWidth: .infinity)
+            }
         }
         .padding()
     }

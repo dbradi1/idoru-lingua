@@ -259,10 +259,10 @@ async def end_session(session_id: str):
 
 @app.get("/api/v1/card/{card_id}/audio", dependencies=[Depends(verify_api_key)])
 async def get_card_audio(card_id: int):
-    """Serve cached .m4a audio file. Generates on-the-fly if missing (lazy TTS per #30)."""
+    """Serve cached .wav audio file. Generates on-the-fly if missing (lazy TTS per #30)."""
     try:
         audio_path = tts.get_card_audio(card_id)
-        return FileResponse(str(audio_path), media_type="audio/m4a")
+        return FileResponse(str(audio_path), media_type="audio/wav")
     except ValueError as e:
         return error_response("CARD_NOT_FOUND", str(e), 404)
     except TimeoutError:
@@ -296,7 +296,7 @@ async def assess_pronunciation(
 
     # Save to temp file
     import tempfile
-    with tempfile.NamedTemporaryFile(suffix=".m4a", delete=False) as tmp:
+    with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp:
         tmp.write(content)
         tmp_path = tmp.name
 

@@ -5,7 +5,7 @@ Per Decision #30 (Issue #10):
 - Pre-warm integrity check: verify file exists + >0 bytes, regenerate if bad
 - Import resilience: cards import text-only if Azure is down, audio_status='pending'
 
-TTS voice: it-IT-LunaNeural (Decision #3)
+TTS voice: it-IT-IsabellaNeural (Decision #3)
 Output format: m4a (Decision #6)
 """
 import logging
@@ -26,14 +26,14 @@ logger = logging.getLogger(__name__)
 
 AZURE_SPEECH_KEY = os.environ.get("AZURE_SPEECH_KEY", "")
 AZURE_SPEECH_REGION = os.environ.get("AZURE_SPEECH_REGION", "eastus")
-VOICE_NAME = "it-IT-LunaNeural"
+VOICE_NAME = "it-IT-IsabellaNeural"
 AUDIO_DIR = Path(os.environ.get("LINGUA_AUDIO_DIR", "/home/drew/lingua-data/audio"))
 AZURE_TIMEOUT_SECONDS = 10
 
 
 def _audio_path_for_card(card_id: int) -> Path:
     """Return the expected filesystem path for a card's audio file."""
-    return AUDIO_DIR / f"card_{card_id}.m4a"
+    return AUDIO_DIR / f"card_{card_id}.wav"
 
 
 def _generate_tts(text: str, output_path: Path) -> float:
@@ -52,8 +52,8 @@ def _generate_tts(text: str, output_path: Path) -> float:
         subscription=AZURE_SPEECH_KEY, region=AZURE_SPEECH_REGION
     )
     speech_config.speech_synthesis_voice_name = VOICE_NAME
-    speech_config.set_audio_output_format(
-        speechsdk.SpeechSynthesisOutputFormat.Audio16Khz32KBitRateMonoM4a
+    speech_config.set_speech_synthesis_output_format(
+        speechsdk.SpeechSynthesisOutputFormat.Riff16Khz16BitMonoPcm
     )
 
     audio_config = speechsdk.audio.AudioOutputConfig(filename=str(output_path))
@@ -62,7 +62,7 @@ def _generate_tts(text: str, output_path: Path) -> float:
     )
 
     start = time.monotonic()
-    result = synthesizer.speak_text_async(text).get(timeout=AZURE_TIMEOUT_SECONDS)
+    result = synthesizer.speak_text_async(text).get()
     elapsed = time.monotonic() - start
 
     if result.reason == speechsdk.ResultReason.SynthesizingAudioCompleted:

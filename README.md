@@ -78,7 +78,7 @@ A language learning system built on spaced repetition, designed around a journey
 - Multiple choice for quick recognition drills (keeps API cost down)
 - Voice answers transcribed via local Whisper for free-form text extraction
 - **Pronunciation scoring:** Azure Pronunciation Assessment (it-IT) — phoneme-level accuracy scores, not just transcription matching. Returns per-sound scores: "your /gli/ was 45% accurate." Genuinely useful feedback, not just a gatekeeper.
-- **TTS voice for Italian reference audio:** Azure Speech `it-IT-LunaNeural` — selected by Drew after sampling 42 Azure Italian voices via Verbatik gallery. Italian-native neural voice, not an English model attempting Italian.
+- **TTS voice for Italian reference audio:** Azure Speech `it-IT-IsabellaNeural` — selected by Drew after sampling 42 Azure Italian voices via Verbatik gallery. Italian-native neural voice, not an English model attempting Italian.
 - **Bundled provider:** Azure Speech handles both TTS (reference audio generation) and STT (pronunciation assessment) — one SDK, one auth, one provider for all voice features.
 
 ### 4. Telegram Flow: Dedicated Group Chat + Sequential Review ⚠️ SUPERSEDED by #26
@@ -166,7 +166,7 @@ A language learning system built on spaced repetition, designed around a journey
 **Decision:** Bundle both voice features under Azure Speech — one provider, one SDK, one auth.
 
 **TTS (reference audio generation):**
-- Voice: `it-IT-LunaNeural` — Italian-native neural voice, selected by Drew
+- Voice: `it-IT-IsabellaNeural` — Italian-native neural voice, selected by Drew
 - Pricing: $16/million characters (prebuilt neural). Free tier: 500K chars/month (~83K words)
 - Roma card set (~60 cards × ~15 chars) = ~900 characters. Regenerable 500+ times on free tier alone.
 - Audio cached as `.m4a` files — generate once, reuse forever
@@ -275,7 +275,7 @@ assess_pronunciation(audio_path, reference_text) → PronunciationScore  # phone
 8. 🏔️ **Torino** (B2.2 — Mastery) — advanced grammar, formal writing, professional Italian, cultural fluency. ~150 cards, 7 clusters. Badge: "Passed for a Torinese"
 
 ### 14. Pronunciation: Proactive Audio on Every Card ✅
-**Decision:** Azure Speech `it-IT-LunaNeural` reads the Italian side of every card proactively. Drew hears correct pronunciation on every exposure — not just pronunciation-specific cards.
+**Decision:** Azure Speech `it-IT-IsabellaNeural` reads the Italian side of every card proactively. Drew hears correct pronunciation on every exposure — not just pronunciation-specific cards.
 
 - Vocab/phrase cards: audio attached automatically
 - Pronunciation cards: reference audio sent before Drew attempts, then Azure phoneme scoring grades the attempt
@@ -491,7 +491,7 @@ A visual mockup of this design is saved at [`assets/mission-control-mockup.png`]
 - This is a safety net, not the main path
 
 **Step 4 — Generate missing audio (parallel)**
-- Missing audio generated via Azure TTS (`it-IT-LunaNeural`) using async/parallel requests
+- Missing audio generated via Azure TTS (`it-IT-IsabellaNeural`) using async/parallel requests
 - Per-request timeout: 30 seconds
 - Parallel execution: all missing files generated concurrently, not sequential
 - Hard timeout: 5 minutes (300 seconds) for the entire pre-warm job
@@ -1005,7 +1005,7 @@ All error responses include a `code` field alongside the human message:
 | daily_card_cap | 20 | FSRS scheduling depends on it |
 | notification_time | "08:00" | Server triggers morning push |
 | session_timeout_minutes | 10 | Server enforces auto-end |
-| audio_voice | "it-IT-LunaNeural" | Server generates TTS |
+| audio_voice | "it-IT-IsabellaNeural" | Server generates TTS |
 | audio_rate | 1.0 | Server generates TTS |
 
 **App-local (iOS UserDefaults/Keychain — no API endpoint):**
@@ -1060,7 +1060,7 @@ All error responses include a `code` field alongside the human message:
 - If any insert fails, entire transaction rolls back — no partial imports
 
 **Phase 4: TTS generation (background)**
-- For all imported cards without Anki audio, generate Azure Luna TTS (`it-IT-LunaNeural`)
+- For all imported cards without Anki audio, generate Azure Luna TTS (`it-IT-IsabellaNeural`)
 - Batch generation: ~840 cards × ~1 second/card ≈ 14 minutes one-time
 - Runs as a background job after import completes — doesn't block the CLI
 - Audio cached as `.m4a` files, reused forever (per #14)
@@ -1117,7 +1117,7 @@ python -m lingua.import --rollback 2026-08-14-roma-001
 #### 1. Lazy TTS Generation
 
 When `GET /api/v1/card/{id}/audio` is called and the cached `.m4a` file is missing or corrupt:
-1. API calls Azure TTS (`it-IT-LunaNeural`) to synthesize the card's `italian_text`
+1. API calls Azure TTS (`it-IT-IsabellaNeural`) to synthesize the card's `italian_text`
 2. Result is cached to disk at the same path pre-warm would use
 3. File is returned to the client (200, audio/m4a)
 4. Subsequent requests serve the cached file directly (zero Azure latency)
