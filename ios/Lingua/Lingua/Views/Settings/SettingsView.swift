@@ -84,7 +84,7 @@ struct SettingsView: View {
             .frame(width: 60, height: 60)
             .background(Color.linguaSurface2, in: .circle())
             .overlay(
-                Circle().stroke(Color.linguaPrimary, lineWidth: 2)
+                RoundedRectangle(cornerRadius: 30).stroke(Color.linguaPrimary, lineWidth: 2)
             )
 
             VStack(alignment: .leading, spacing: 2) {
