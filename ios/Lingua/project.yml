@@ -24,6 +24,8 @@ targets:
       - path: Lingua
         excludes:
           - "**/.DS_Store"
+      - path: Lingua/Assets.xcassets
+        type: folder
     info:
       path: Lingua/Info.plist
       properties:
