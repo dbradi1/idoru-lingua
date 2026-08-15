@@ -1,6 +1,7 @@
 //  JourneyView.swift
-//  Journey tab — dark theme timeline per Figma Make design.
-//  Vertical timeline with circles, connecting lines, terracotta accents.
+//  Journey tab — vertical timeline with city nodes.
+//  Per Figma Make JourneyTab.tsx: circular nodes, connecting line,
+//  white city cards with CEFR badge, progress bar.
 
 import SwiftUI
 
@@ -12,34 +13,53 @@ struct JourneyView: View {
         ZStack {
             Color.linguaBackground.ignoresSafeArea()
 
-            ScrollView {
+            ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 0) {
                     Text("Your Journey")
-                        .font(.linguaHeading)
+                        .font(.system(size: 28, weight: .heavy, design: .serif))
                         .foregroundColor(.linguaText)
-                        .padding(.horizontal, 24)
+                        .padding(.horizontal, 20)
                         .padding(.top, 20)
                         .padding(.bottom, 24)
 
-                    ForEach(cities.sorted { $0.sortOrder < $1.sortOrder }) { city in
-                        JourneyTimelineRow(city: city)
-                            .onTapGesture { selectedCity = city }
+                    // Timeline
+                    ZStack(alignment: .topLeading) {
+                        // Vertical background line
+                        Rectangle()
+                            .fill(Color(red: 0.91, green: 0.88, blue: 0.84))
+                            .frame(width: 3)
+                            .padding(.leading, 23)
+                            .padding(.top, 24)
+                            .padding(.bottom, 24)
+
+                        // City rows
+                        VStack(spacing: 24) {
+                            ForEach(cities.sorted { $0.sortOrder < $1.sortOrder }) { city in
+                                JourneyTimelineRow(
+                                    city: city,
+                                    isPreviousComplete: cities.sorted { $0.sortOrder < $1.sortOrder }
+                                        .first(where: { $0.sortOrder == city.sortOrder - 1 })?
+                                        .badgeEarned == 1
+                                )
+                                .onTapGesture {
+                                    if city.isUnlocked == 1 {
+                                        selectedCity = city
+                                    }
+                                }
+                            }
+                        }
                     }
+                    .padding(.bottom, 100)
                 }
-                .padding(.bottom, 100)
             }
         }
         .toolbar(.hidden, for: .navigationBar)
         .task { await loadCities() }
-        .sheet(item: $selectedCity) { city in
-            CityDetailView(city: city)
-        }
+        .sheet(item: $selectedCity) { city in CityDetailView(city: city) }
     }
 
     private func loadCities() async {
-        do {
-            cities = try await APIClient.shared.getProgressOverview()
-        } catch {}
+        do { cities = try await APIClient.shared.getProgressOverview() } catch {}
     }
 }
 
@@ -47,82 +67,111 @@ struct JourneyView: View {
 
 struct JourneyTimelineRow: View {
     let city: CityProgress
-    @State private var clusters: [ClusterStrength] = []
+    let isPreviousComplete: Bool
 
     private var isComplete: Bool { city.badgeEarned == 1 }
-    private var isUnlocked: Bool { city.isUnlocked == 1 }
-    private var isLocked: Bool { !isUnlocked }
+    private var isLocked: Bool { city.isUnlocked == 0 }
+    private var isActive: Bool { !isLocked && !isComplete }
 
-    private var statusIcon: String {
-        if isLocked { return "lock.fill" }
-        if isComplete { return "checkmark" }
-        return city.nameEmoji ?? "🏙️"
+    private var nodeColor: Color {
+        if isComplete { return .linguaPrimary }
+        if isLocked { return Color(red: 0.91, green: 0.88, blue: 0.84) }
+        return .linguaSurface
     }
 
-    private var circleColor: Color {
+    private var nodeBorder: Color {
         if isComplete { return .linguaPrimary }
-        if isLocked { return .linguaSurface }
-        return .linguaSurface2
-    }
-
-    private var borderColor: Color {
-        if isComplete { return .linguaPrimary }
-        return .linguaBorder
+        if isLocked { return Color(red: 0.75, green: 0.71, blue: 0.66) }
+        return .linguaPrimary
     }
 
     var body: some View {
         HStack(spacing: 16) {
-            // Timeline circle
+            // Node
             ZStack {
-                if !isComplete {
-                    Text(isLocked ? "🔒" : (city.nameEmoji ?? "🏙️"))
+                // Colored segment above (if previous is completed)
+                if isPreviousComplete && !isLocked {
+                    Rectangle()
+                        .fill(Color.linguaPrimary)
+                        .frame(width: 3, height: 24)
+                        .offset(y: -36)
+                }
+
+                if isComplete {
+                    Text("✓")
+                        .font(.system(size: 18, weight: .bold))
+                        .foregroundColor(.white)
+                } else if isLocked {
+                    Text("🔒")
                         .font(.system(size: 18))
                 } else {
-                    Image(systemName: "checkmark")
-                        .font(.system(size: 16, weight: .bold))
-                        .foregroundColor(.white)
+                    Text(city.nameEmoji ?? "🏙️")
+                        .font(.system(size: 22))
                 }
             }
-            .frame(width: 44, height: 44)
-            .background(circleColor, in: .rect(cornerRadius: 22))
+            .frame(width: 48, height: 48)
+            .background(nodeColor, in: .rect(cornerRadius: 24))
             .overlay(
-                RoundedRectangle(cornerRadius: 22).stroke(borderColor, lineWidth: 2)
+                RoundedRectangle(cornerRadius: 24)
+                    .stroke(nodeBorder, lineWidth: 3)
             )
+            .shadow(color: isActive ? Color.linguaPrimary.opacity(0.2) : .clear, radius: 4, y: 2)
 
-            // Content
+            // City card
             VStack(alignment: .leading, spacing: 4) {
-                Text(city.name)
-                    .font(.system(size: 15, weight: .bold, design: .rounded))
-                    .foregroundColor(isLocked ? .linguaSubtext : .linguaText)
-                Text("\(city.cefrLevel) · \(city.theme)")
-                    .font(.system(size: 12, weight: .semibold, design: .serif))
+                HStack {
+                    Text(city.name)
+                        .font(.system(size: 16, weight: .heavy, design: .rounded))
+                        .foregroundColor(.linguaText)
+                    Spacer()
+                    Text(city.cefrLevel)
+                        .font(.system(size: 10, weight: .bold, design: .rounded))
+                        .foregroundColor(
+                            isComplete ? .linguaPrimary :
+                            isLocked ? .linguaSubtext :
+                            .linguaBlue
+                        )
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 2)
+                        .background(
+                            (isComplete ? Color.linguaPrimary :
+                             isLocked ? Color.linguaDivider :
+                             Color.linguaBlue).opacity(0.1),
+                            in: .rect(cornerRadius: 99)
+                        )
+                }
+
+                Text(city.theme)
+                    .font(.system(size: 12, weight: .medium, design: .serif))
                     .italic()
                     .foregroundColor(.linguaSubtext)
 
                 if !isLocked {
-                    ProgressView(value: Double(city.gateReached), total: 1.0)
-                        .tint(.linguaPrimary)
-                        .frame(width: 100, height: 3)
-                        .clipShape(.rect(cornerRadius: 4))
-                        .padding(.top, 4)
+                    ProgressView(
+                        value: Double(city.gateReached),
+                        total: 1.0
+                    )
+                    .tint(isComplete ? .linguaPrimary : .linguaBlue)
+                    .frame(height: 4)
+                    .clipShape(.rect(cornerRadius: 99))
+                    .padding(.top, 4)
+
+                    Text("\(Int(city.gateReached * 100))% complete")
+                        .font(.system(size: 11, weight: .semibold, design: .rounded))
+                        .foregroundColor(Color(red: 0.67, green: 0.67, blue: 0.67))
                 }
             }
-            .padding(.bottom, 28)
-
-            Spacer()
+            .padding(12)
+            .background(Color.linguaSurface, in: .rect(cornerRadius: 16))
+            .shadow(color: .black.opacity(0.07), radius: 3, y: 2)
+            .opacity(isLocked ? 0.6 : 1)
+            .padding(.trailing, 20)
         }
-        .padding(.horizontal, 24)
-        .overlay(alignment: .leading) {
-            // Connecting line
-            Rectangle()
-                .fill(isComplete ? Color.linguaPrimary : Color.linguaBorder)
-                .frame(width: 2, height: 28)
-                .offset(x: 24 + 22, y: 46) // align with circle center + gap
-        }
+        .padding(.leading, 20)
     }
 }
 
-// MARK: - City Detail (Dark)
+// MARK: - City Detail
 
 struct CityDetailView: View {
     let city: CityProgress
@@ -136,8 +185,7 @@ struct CityDetailView: View {
                 List {
                     Section {
                         HStack(spacing: 16) {
-                            Text(city.nameEmoji ?? "")
-                                .font(.system(size: 44))
+                            Text(city.nameEmoji ?? "").font(.system(size: 44))
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(city.name)
                                     .font(.system(size: 24, weight: .heavy, design: .serif))
@@ -174,8 +222,7 @@ struct CityDetailView: View {
                             HStack {
                                 Image(systemName: city.badgeEarned == 1 ? "checkmark.seal.fill" : "seal")
                                     .foregroundColor(city.badgeEarned == 1 ? .linguaGold : .linguaSubtext)
-                                Text(badge)
-                                    .foregroundColor(.linguaText)
+                                Text(badge).foregroundColor(.linguaText)
                             }
                             .listRowBackground(Color.linguaSurface)
                         }

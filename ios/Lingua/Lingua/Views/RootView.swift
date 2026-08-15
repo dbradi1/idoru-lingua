@@ -1,6 +1,6 @@
 //  RootView.swift
 //  Root tab navigation. 5 tabs: Home, Cards, Journey, Stats, Settings.
-//  Dark theme: pill-style tab bar with terracotta active state.
+//  Per Figma Make: frosted glass tab bar with coral active pill, emoji icons.
 
 import SwiftUI
 
@@ -10,7 +10,6 @@ struct RootView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // Content
             ZStack {
                 switch selectedTab {
                 case 0: HomeView()
@@ -23,8 +22,7 @@ struct RootView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
 
-            // Custom dark pill tab bar
-            DarkTabBar(selectedTab: $selectedTab)
+            FigTabBar(selectedTab: $selectedTab)
         }
         .background(Color.linguaBackground)
         .ignoresSafeArea(edges: .bottom)
@@ -37,17 +35,17 @@ struct RootView: View {
     }
 }
 
-// MARK: - Dark Pill Tab Bar
+// MARK: - Figma Tab Bar (emoji icons + coral pill)
 
-struct DarkTabBar: View {
+struct FigTabBar: View {
     @Binding var selectedTab: Int
 
     private let tabs: [(Int, String, String)] = [
-        (0, "Home", "house"),
-        (1, "Cards", "rectangle.stack"),
-        (2, "Journey", "map"),
-        (3, "Stats", "chart.bar"),
-        (4, "Settings", "gearshape"),
+        (0, "🏠", "Home"),
+        (1, "🃏", "Cards"),
+        (2, "🗺️", "Journey"),
+        (3, "📊", "Stats"),
+        (4, "⚙️", "Settings"),
     ]
 
     var body: some View {
@@ -59,29 +57,35 @@ struct DarkTabBar: View {
                         selectedTab = tab.0
                     }
                 } label: {
-                    HStack(spacing: 4) {
-                        Image(systemName: active ? "\(tab.2).fill" : tab.2)
-                            .font(.system(size: 18, weight: .semibold))
-                        if active {
-                            Text(tab.1)
-                                .font(.linguaTab)
-                        }
+                    VStack(spacing: 2) {
+                        // Emoji icon in pill background
+                        Text(tab.1)
+                            .font(.system(size: 18))
+                            .frame(width: 44, height: 28)
+                            .background(
+                                active
+                                    ? Color.linguaPrimary.opacity(0.15)
+                                    : Color.clear,
+                                in: .rect(cornerRadius: 14)
+                            )
+
+                        Text(tab.2)
+                            .font(.linguaTab)
+                            .foregroundColor(active ? .linguaPrimary : .linguaSubtext)
                     }
-                    .foregroundColor(active ? .white : .linguaSubtext)
-                    .padding(.vertical, 8)
-                    .padding(.horizontal, active ? 18 : 10)
-                    .background(active ? Color.linguaPrimary : Color.clear, in: .rect(cornerRadius: 20))
-                    .animation(.easeInOut(duration: 0.2), value: active)
                 }
                 .frame(maxWidth: .infinity)
             }
         }
-        .padding(.horizontal, 6)
-        .padding(.vertical, 8)
+        .padding(.top, 8)
         .padding(.bottom, 24)
-        .background(Color.linguaSurface, in: .rect(cornerRadius: 20))
-        .padding(.horizontal, 16)
-        .padding(.bottom, 4)
+        .background(.ultraThinMaterial)
+        .overlay(
+            Rectangle()
+                .fill(Color.black.opacity(0.08))
+                .frame(height: 1),
+            alignment: .top
+        )
     }
 }
 
