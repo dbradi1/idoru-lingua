@@ -15,25 +15,31 @@ struct HomeView: View {
     @State private var wordsLearned = 0
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: 0) {
-                // Coral header with greeting + stats
-                headerSection
+        ZStack(alignment: .top) {
+            // Coral background fills the safe area behind the notch
+            Color.linguaPrimary
+                .ignoresSafeArea(edges: .top)
+                .frame(height: 0) // Just fills the safe area, doesn't take space
 
-                // Daily goal
-                dailyGoalSection
-                    .padding(.horizontal, 20)
-                    .padding(.top, 20)
+            ScrollView {
+                VStack(spacing: 0) {
+                    // Coral header with greeting + stats
+                    headerSection
 
-                // Lessons
-                lessonsSection
-                    .padding(.horizontal, 20)
-                    .padding(.top, 28)
-                    .padding(.bottom, 32)
+                    // Daily goal
+                    dailyGoalSection
+                        .padding(.horizontal, 20)
+                        .padding(.top, 20)
+
+                    // Lessons
+                    lessonsSection
+                        .padding(.horizontal, 20)
+                        .padding(.top, 28)
+                        .padding(.bottom, 32)
+                }
             }
+            .background(Color.linguaBackground)
         }
-        .background(Color.linguaBackground)
-        .ignoresSafeArea(edges: .top)
         .toolbar(.hidden, for: .navigationBar)
         .task { await loadData() }
     }
