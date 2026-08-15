@@ -1,6 +1,6 @@
 //  SharedHeader.swift
-//  Persistent coral header shown on Home and Cards tabs.
-//  Contains greeting, journey city icons, and stats row.
+//  Dark theme header for Home and Cards tabs.
+//  Compact: greeting + stats row on black with surface cards.
 
 import SwiftUI
 
@@ -13,15 +13,15 @@ struct SharedHeader: View {
 
     var body: some View {
         VStack(spacing: 20) {
-            // Greeting + journey icons
+            // Greeting + profile
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Ciao,")
-                        .font(.system(size: 20, weight: .regular, design: .rounded))
-                        .foregroundColor(.white.opacity(0.9))
+                        .font(.system(size: 13, weight: .semibold, design: .rounded))
+                        .foregroundColor(.linguaSubtext)
                     Text("Drew! 🇮🇹")
-                        .font(.system(size: 28, weight: .bold, design: .rounded))
-                        .foregroundColor(.white)
+                        .font(.linguaDisplay)
+                        .foregroundColor(.linguaText)
                 }
                 Spacer()
 
@@ -29,30 +29,23 @@ struct SharedHeader: View {
                 HStack(spacing: 6) {
                     ForEach(cities.prefix(4)) { city in
                         Text(city.nameEmoji ?? "🏙️")
-                            .font(.system(size: 20))
+                            .font(.system(size: 18))
                             .opacity(city.isUnlocked == 1 ? 1.0 : 0.3)
                     }
                 }
             }
             .padding(.horizontal, 24)
-            .padding(.top, 60)
+            .padding(.top, 16)
 
             // Stats cards row
-            HStack(spacing: 12) {
+            HStack(spacing: 10) {
                 HeaderStatCard(icon: "🔥", value: "\(streak)", label: "day streak")
                 HeaderStatCard(icon: "⚡️", value: "\(xp)", label: "XP total")
                 HeaderStatCard(icon: "📚", value: "\(words)", label: "words")
             }
             .padding(.horizontal, 24)
-            .padding(.bottom, 28)
+            .padding(.bottom, 8)
         }
-        .background(
-            LinearGradient(
-                colors: [Color.linguaPrimary, Color.linguaPrimary.opacity(0.85)],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-        )
     }
 }
 
@@ -62,18 +55,22 @@ private struct HeaderStatCard: View {
     let label: String
 
     var body: some View {
-        VStack(spacing: 6) {
+        VStack(spacing: 4) {
             Text(icon)
-                .font(.system(size: 24))
+                .font(.system(size: 20))
             Text(value)
-                .font(.system(size: 20, weight: .bold, design: .rounded))
-                .foregroundColor(.white)
+                .font(.system(size: 18, weight: .heavy, design: .rounded))
+                .foregroundColor(.linguaText)
             Text(label)
-                .font(.system(size: 11, weight: .medium))
-                .foregroundColor(.white.opacity(0.8))
+                .font(.system(size: 10, weight: .semibold, design: .rounded))
+                .foregroundColor(.linguaSubtext)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 14)
-        .background(Color.white.opacity(0.15), in: .rect(cornerRadius: 14))
+        .background(Color.linguaSurface, in: .rect(cornerRadius: 18))
+        .overlay(
+            RoundedRectangle(cornerRadius: 18)
+                .stroke(Color.linguaBorder, lineWidth: 1)
+        )
     }
 }

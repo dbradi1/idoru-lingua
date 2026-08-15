@@ -1,6 +1,6 @@
 //  JourneyView.swift
-//  Journey tab — 8-city map of Italian learning progression.
-//  Light warm theme matching HomeView.
+//  Journey tab — dark theme timeline per Figma Make design.
+//  Vertical timeline with circles, connecting lines, terracotta accents.
 
 import SwiftUI
 
@@ -9,26 +9,27 @@ struct JourneyView: View {
     @State private var selectedCity: CityProgress?
 
     var body: some View {
-        NavigationStack {
-            ZStack {
-                Color.linguaBackground
-                    .ignoresSafeArea()
+        ZStack {
+            Color.linguaBackground.ignoresSafeArea()
 
-                ScrollView {
-                    VStack(spacing: 16) {
-                        ForEach(cities.sorted { $0.sortOrder < $1.sortOrder }) { city in
-                            CityRow(city: city)
-                                .onTapGesture { selectedCity = city }
-                        }
+            ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+                    Text("Your Journey")
+                        .font(.linguaHeading)
+                        .foregroundColor(.linguaText)
+                        .padding(.horizontal, 24)
+                        .padding(.top, 20)
+                        .padding(.bottom, 24)
+
+                    ForEach(cities.sorted { $0.sortOrder < $1.sortOrder }) { city in
+                        JourneyTimelineRow(city: city)
+                            .onTapGesture { selectedCity = city }
                     }
-                    .padding(.horizontal, 20)
-                    .padding(.top, 20)
-                    .padding(.bottom, 32)
                 }
+                .padding(.bottom, 100)
             }
-            .navigationTitle("Journey")
-            .navigationBarTitleDisplayMode(.large)
         }
+        .toolbar(.hidden, for: .navigationBar)
         .task { await loadCities() }
         .sheet(item: $selectedCity) { city in
             CityDetailView(city: city)
@@ -42,51 +43,86 @@ struct JourneyView: View {
     }
 }
 
-// MARK: - City Row
+// MARK: - Timeline Row
 
-struct CityRow: View {
+struct JourneyTimelineRow: View {
     let city: CityProgress
+    @State private var clusters: [ClusterStrength] = []
+
+    private var isComplete: Bool { city.badgeEarned == 1 }
+    private var isUnlocked: Bool { city.isUnlocked == 1 }
+    private var isLocked: Bool { !isUnlocked }
 
     private var statusIcon: String {
-        if city.isUnlocked == 0 { return "lock.fill" }
-        if city.badgeEarned == 1 { return "checkmark.seal.fill" }
-        if city.gateReached == 1 { return "checkmark.circle.fill" }
-        return "circle"
+        if isLocked { return "lock.fill" }
+        if isComplete { return "checkmark" }
+        return city.nameEmoji ?? "🏙️"
     }
 
-    private var statusColor: Color {
-        if city.isUnlocked == 0 { return .secondary }
-        if city.badgeEarned == 1 { return .linguaGold }
-        if city.gateReached == 1 { return .linguaGood }
-        return .linguaPrimary
+    private var circleColor: Color {
+        if isComplete { return .linguaPrimary }
+        if isLocked { return .linguaSurface }
+        return .linguaSurface2
+    }
+
+    private var borderColor: Color {
+        if isComplete { return .linguaPrimary }
+        return .linguaBorder
     }
 
     var body: some View {
         HStack(spacing: 16) {
-            Text(city.nameEmoji ?? "🏙️")
-                .font(.system(size: 32))
+            // Timeline circle
+            ZStack {
+                if !isComplete {
+                    Text(isLocked ? "🔒" : (city.nameEmoji ?? "🏙️"))
+                        .font(.system(size: 18))
+                } else {
+                    Image(systemName: "checkmark")
+                        .font(.system(size: 16, weight: .bold))
+                        .foregroundColor(.white)
+                }
+            }
+            .frame(width: 44, height: 44)
+            .background(circleColor, in: .circle())
+            .overlay(
+                Circle().stroke(borderColor, lineWidth: 2)
+            )
 
+            // Content
             VStack(alignment: .leading, spacing: 4) {
                 Text(city.name)
-                    .font(.system(size: 18, weight: .semibold, design: .rounded))
+                    .font(.system(size: 15, weight: .bold, design: .rounded))
+                    .foregroundColor(isLocked ? .linguaSubtext : .linguaText)
                 Text("\(city.cefrLevel) · \(city.theme)")
-                    .font(.system(size: 13))
-                    .foregroundColor(.secondary)
+                    .font(.system(size: 12, weight: .semibold, design: .serif))
+                    .italic()
+                    .foregroundColor(.linguaSubtext)
+
+                if !isLocked {
+                    ProgressView(value: Double(city.gateReached), total: 1.0)
+                        .tint(.linguaPrimary)
+                        .frame(width: 100, height: 3)
+                        .clipShape(.rect(cornerRadius: 4))
+                        .padding(.top, 4)
+                }
             }
+            .padding(.bottom, 28)
 
             Spacer()
-
-            Image(systemName: statusIcon)
-                .font(.system(size: 20))
-                .foregroundColor(statusColor)
         }
-        .padding(16)
-        .background(Color.linguaSurface, in: .rect(cornerRadius: 16))
-        .shadow(color: .black.opacity(0.04), radius: 6, y: 2)
+        .padding(.horizontal, 24)
+        .overlay(alignment: .leading) {
+            // Connecting line
+            Rectangle()
+                .fill(isComplete ? Color.linguaPrimary : Color.linguaBorder)
+                .frame(width: 2, height: 28)
+                .offset(x: 24 + 22, y: 46) // align with circle center + gap
+        }
     }
 }
 
-// MARK: - City Detail
+// MARK: - City Detail (Dark)
 
 struct CityDetailView: View {
     let city: CityProgress
@@ -95,8 +131,7 @@ struct CityDetailView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                Color.linguaBackground
-                    .ignoresSafeArea()
+                Color.linguaBackground.ignoresSafeArea()
 
                 List {
                     Section {
@@ -105,24 +140,26 @@ struct CityDetailView: View {
                                 .font(.system(size: 44))
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(city.name)
-                                    .font(.system(size: 24, weight: .bold, design: .rounded))
+                                    .font(.system(size: 24, weight: .heavy, design: .serif))
+                                    .foregroundColor(.linguaText)
                                 Text(city.cefrLevel)
                                     .font(.system(size: 15))
-                                    .foregroundColor(.secondary)
+                                    .foregroundColor(.linguaSubtext)
                                 Text(city.theme)
                                     .font(.system(size: 13))
-                                    .foregroundColor(.secondary)
+                                    .foregroundColor(.linguaSubtext)
                             }
                         }
                         .padding(.vertical, 8)
+                        .listRowBackground(Color.linguaSurface)
                     }
-                    .listRowBackground(Color.linguaSurface)
 
                     Section("Clusters") {
                         ForEach(clusters) { cluster in
                             HStack {
                                 Text(cluster.name)
                                     .font(.system(size: 15, weight: .medium))
+                                    .foregroundColor(.linguaText)
                                 Spacer()
                                 ProgressView(value: cluster.strength, total: 1.0)
                                     .tint(.linguaPrimary)
@@ -136,8 +173,9 @@ struct CityDetailView: View {
                         Section("Badge") {
                             HStack {
                                 Image(systemName: city.badgeEarned == 1 ? "checkmark.seal.fill" : "seal")
-                                    .foregroundColor(city.badgeEarned == 1 ? .linguaGold : .secondary)
+                                    .foregroundColor(city.badgeEarned == 1 ? .linguaGold : .linguaSubtext)
                                 Text(badge)
+                                    .foregroundColor(.linguaText)
                             }
                             .listRowBackground(Color.linguaSurface)
                         }

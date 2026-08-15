@@ -1,7 +1,6 @@
 //  HomeView.swift
-//  Home tab — warm greeting, stats, daily goal, lesson cards.
-//  Redesigned per Drew's Figma mockup: coral header, stats row,
-//  daily goal progress, lesson clusters with color-coded progress.
+//  Home tab — dark theme per Figma Make design.
+//  Black background, surface cards, terracotta accents, lesson list.
 
 import SwiftUI
 
@@ -15,44 +14,54 @@ struct HomeView: View {
     @State private var wordsLearned = 0
 
     var body: some View {
-        ZStack(alignment: .top) {
-            // Coral background fills the safe area behind the notch
-            Color.linguaPrimary
-                .ignoresSafeArea(edges: .top)
-                .frame(height: 0) // Just fills the safe area, doesn't take space
+        ZStack {
+            Color.linguaBackground.ignoresSafeArea()
 
             ScrollView {
                 VStack(spacing: 0) {
-                    // Coral header with greeting + stats
-                    headerSection
+                    // Header
+                    SharedHeader(
+                        streak: 0,
+                        xp: reviewCount,
+                        words: wordsLearned,
+                        cities: cities
+                    )
+                    .padding(.bottom, 12)
 
                     // Daily goal
                     dailyGoalSection
-                        .padding(.horizontal, 20)
-                        .padding(.top, 20)
+                        .padding(.horizontal, 24)
+                        .padding(.top, 8)
+
+                    // Continue button
+                    Button {
+                        NotificationCenter.default.post(name: .switchToCardsTab, object: nil)
+                    } label: {
+                        HStack(spacing: 6) {
+                            Text("▶")
+                                .font(.system(size: 13, weight: .bold))
+                            Text("Continue Learning")
+                                .font(.system(size: 15, weight: .bold, design: .rounded))
+                        }
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 16)
+                    }
+                    .background(Color.linguaPrimary, in: .rect(cornerRadius: 18))
+                    .shadow(color: Color.linguaPrimary.opacity(0.3), radius: 12, y: 4)
+                    .padding(.horizontal, 24)
+                    .padding(.top, 16)
 
                     // Lessons
                     lessonsSection
-                        .padding(.horizontal, 20)
-                        .padding(.top, 28)
-                        .padding(.bottom, 32)
+                        .padding(.horizontal, 24)
+                        .padding(.top, 24)
+                        .padding(.bottom, 100)
                 }
             }
-            .background(Color.linguaBackground)
         }
         .toolbar(.hidden, for: .navigationBar)
         .task { await loadData() }
-    }
-
-    // MARK: - Header (shared coral component)
-
-    private var headerSection: some View {
-        SharedHeader(
-            streak: 0,
-            xp: reviewCount,
-            words: wordsLearned,
-            cities: cities
-        )
     }
 
     // MARK: - Daily Goal
@@ -61,10 +70,11 @@ struct HomeView: View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
                 Text("Daily Goal")
-                    .font(.system(size: 17, weight: .semibold, design: .rounded))
+                    .font(.system(size: 13, weight: .bold, design: .rounded))
+                    .foregroundColor(.linguaText)
                 Spacer()
                 Text("\(min(reviewCount, settings?.dailyReviewCap ?? 20)) / \(settings?.dailyReviewCap ?? 20)")
-                    .font(.system(size: 17, weight: .bold, design: .rounded))
+                    .font(.system(size: 13, weight: .bold, design: .rounded))
                     .foregroundColor(.linguaPrimary)
             }
 
@@ -73,28 +83,33 @@ struct HomeView: View {
                 total: Double(settings?.dailyReviewCap ?? 20)
             )
             .tint(.linguaPrimary)
-            .frame(height: 12)
-            .clipShape(.rect(cornerRadius: 6))
+            .frame(height: 4)
+            .clipShape(.rect(cornerRadius: 4))
 
             Text("\(max((settings?.dailyReviewCap ?? 20) - reviewCount, 0)) cards to reach your daily goal")
-                .font(.system(size: 13))
-                .foregroundColor(.secondary)
+                .font(.system(size: 11, weight: .semibold, design: .rounded))
+                .foregroundColor(.linguaSubtext)
         }
-        .padding(20)
-        .background(Color.linguaSurface, in: .rect(cornerRadius: 16))
-        .shadow(color: .black.opacity(0.04), radius: 8, y: 2)
+        .padding(16)
+        .background(Color.linguaSurface, in: .rect(cornerRadius: 18))
+        .overlay(
+            RoundedRectangle(cornerRadius: 18)
+                .stroke(Color.linguaBorder, lineWidth: 1)
+        )
     }
 
     // MARK: - Lessons
 
     private var lessonsSection: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: 14) {
             Text("Lessons")
-                .font(.system(size: 24, weight: .bold, design: .rounded))
+                .font(.linguaHeading)
+                .foregroundColor(.linguaText)
 
             if clusters.isEmpty {
                 Text("Loading lessons...")
-                    .foregroundColor(.secondary)
+                    .font(.linguaBody)
+                    .foregroundColor(.linguaSubtext)
             } else {
                 ForEach(clusters) { cluster in
                     LessonCard(cluster: cluster)
@@ -118,9 +133,6 @@ struct HomeView: View {
             }
 
             settings = try await APIClient.shared.getSettings()
-
-            // Count total words learned (cards with FSRS state)
-            // For now use dueCards count as proxy
             wordsLearned = 5 // placeholder until we have a real count endpoint
 
         } catch {
@@ -129,12 +141,11 @@ struct HomeView: View {
     }
 }
 
-// MARK: - Lesson Card
+// MARK: - Lesson Card (Dark)
 
 private struct LessonCard: View {
     let cluster: ClusterStrength
 
-    // Color mapping based on cluster name
     private var lessonColor: Color {
         let name = cluster.name.lowercased()
         if name.contains("greet") || name.contains("salut") { return .linguaCoral }
@@ -150,7 +161,7 @@ private struct LessonCard: View {
         if name.contains("greet") || name.contains("salut") { return "👋" }
         if name.contains("café") || name.contains("caff") || name.contains("cafe") { return "☕️" }
         if name.contains("number") || name.contains("numer") { return "🔢" }
-        if name.contains("family") || name.contains("famig") { return "👨‍👩‍👧" }
+        if name.contains("family") || name.contains("famig") { return "👨👩👧" }
         if name.contains("travel") || name.contains("viagg") { return "✈️" }
         return "📖"
     }
@@ -173,37 +184,38 @@ private struct LessonCard: View {
         HStack(spacing: 14) {
             // Icon
             Text(lessonEmoji)
-                .font(.system(size: 24))
-                .frame(width: 48, height: 48)
-                .background(lessonColor, in: .rect(cornerRadius: 12))
+                .font(.system(size: 22))
+                .frame(width: 46, height: 46)
+                .background(Color.linguaSurface2, in: .rect(cornerRadius: 13))
 
             // Content
             VStack(alignment: .leading, spacing: 6) {
                 HStack {
                     Text(cluster.name)
-                        .font(.system(size: 16, weight: .semibold, design: .rounded))
+                        .font(.system(size: 14, weight: .bold, design: .rounded))
+                        .foregroundColor(.linguaText)
                     Spacer()
                     Text("\(cluster.cardCount) words")
-                        .font(.system(size: 13, weight: .medium))
-                        .foregroundColor(lessonColor)
+                        .font(.system(size: 11, weight: .semibold, design: .rounded))
+                        .foregroundColor(.linguaSubtext)
                 }
 
                 Text(italianName)
-                    .font(.system(size: 13, design: .serif))
+                    .font(.system(size: 12, weight: .semibold, design: .serif))
                     .italic()
-                    .foregroundColor(.secondary)
+                    .foregroundColor(.linguaSubtext)
 
                 ProgressView(value: cluster.strength, total: 1.0)
-                    .tint(lessonColor)
-                    .frame(height: 8)
+                    .tint(.linguaPrimary)
+                    .frame(height: 3)
                     .clipShape(.rect(cornerRadius: 4))
-
-                Text("\(completionPercent)% complete")
-                    .font(.system(size: 12))
-                    .foregroundColor(.secondary)
             }
         }
-        .padding(16)
-        .background(lessonColor.opacity(0.08), in: .rect(cornerRadius: 16))
+        .padding(14)
+        .background(Color.linguaSurface, in: .rect(cornerRadius: 18))
+        .overlay(
+            RoundedRectangle(cornerRadius: 18)
+                .stroke(Color.linguaBorder, lineWidth: 1)
+        )
     }
 }
