@@ -49,3 +49,19 @@ extension Font {
     // Badge / pill labels
     static let linguaBadge = Font.system(size: 11, weight: .semibold, design: .rounded)
 }
+
+// MARK: - ShapeStyle conformance
+// Allows .linguaBlue etc. to work with foregroundStyle(), .fill(), etc.
+
+extension ShapeStyle where Self == Color {
+    static var linguaBackground: Color { .linguaBackground }
+    static var linguaSurface: Color { .linguaSurface }
+    static var linguaSurfaceLight: Color { .linguaSurfaceLight }
+    static var linguaAccent: Color { .linguaAccent }
+    static var linguaBlue: Color { .linguaBlue }
+    static var linguaGold: Color { .linguaGold }
+    static var linguaGood: Color { .linguaGood }
+    static var linguaEasy: Color { .linguaEasy }
+    static var linguaHard: Color { .linguaHard }
+    static var linguaAgain: Color { .linguaAgain }
+}

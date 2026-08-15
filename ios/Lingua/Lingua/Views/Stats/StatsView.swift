@@ -37,7 +37,7 @@ struct StatsView: View {
                                     x: .value("Date", point.date),
                                     y: .value("Reviews", point.reviews)
                                 )
-                                .foregroundStyle(.linguaBlue)
+                                .foregroundColor(.linguaBlue)
                             }
                             .frame(height: 200)
                         }
