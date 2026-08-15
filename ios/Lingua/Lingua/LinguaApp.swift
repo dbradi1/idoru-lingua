@@ -15,8 +15,7 @@ struct LinguaApp: App {
         WindowGroup {
             RootView()
                 .environmentObject(appState)
-                .preferredColorScheme(.dark)
-                .tint(.linguaAccent)
+                                .tint(.linguaAccent)
         }
     }
 }

@@ -82,8 +82,7 @@ struct CityRow: View {
             }
         }
         .padding()
-        .background(Color.linguaSurface)
-        .cornerRadius(12)
+        .background(Color.linguaSurface, in: .rect(cornerRadius: 12))
     }
 }
 

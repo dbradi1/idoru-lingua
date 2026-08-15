@@ -46,8 +46,12 @@ struct RootView: View {
         .overlay(alignment: .top) {
             if !appState.isOnline {
                 OfflineBanner()
-                    .transition(.move(edge: .top))
+                    .transition(.move(edge: .top).combined(with: .opacity))
             }
+        }
+        .animation(.spring(duration: 0.35), value: appState.isOnline)
+        .onReceive(NotificationCenter.default.publisher(for: .switchToCardsTab)) { _ in
+            selectedTab = 1
         }
         .task {
             await appState.checkConnection()

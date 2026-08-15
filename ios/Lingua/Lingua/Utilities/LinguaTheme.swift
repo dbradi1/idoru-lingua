@@ -65,3 +65,8 @@ extension ShapeStyle where Self == Color {
     static var linguaHard: Color { .linguaHard }
     static var linguaAgain: Color { .linguaAgain }
 }
+
+// MARK: - Notification Names
+extension Notification.Name {
+    static let switchToCardsTab = Notification.Name("switchToCardsTab")
+}

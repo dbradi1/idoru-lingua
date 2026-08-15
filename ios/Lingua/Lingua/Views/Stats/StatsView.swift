@@ -44,7 +44,7 @@ struct StatsView: View {
                     }
                     .padding()
                     .background(Color.linguaSurface)
-                    .cornerRadius(12)
+                    .clipShape(.rect(cornerRadius: 12))
 
                     // Accuracy
                     if !retention.isEmpty {
@@ -60,7 +60,7 @@ struct StatsView: View {
                         }
                         .padding()
                         .background(Color.linguaSurface)
-                        .cornerRadius(12)
+                        .clipShape(.rect(cornerRadius: 12))
                     }
 
                     // Leeches
@@ -86,7 +86,7 @@ struct StatsView: View {
                     }
                     .padding()
                     .background(Color.linguaSurface)
-                    .cornerRadius(12)
+                    .clipShape(.rect(cornerRadius: 12))
                 }
                 .padding()
             }

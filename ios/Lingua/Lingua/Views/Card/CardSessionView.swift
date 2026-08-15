@@ -21,16 +21,22 @@ struct CardSessionView: View {
     @State private var errorMessage: String?
     @State private var isPlayingAudio = false
     @State private var audioPlayer: AVAudioPlayer?
+    @State private var currentCardIndex = 0
 
     var body: some View {
         NavigationStack {
             VStack {
                 if !appState.isOnline {
-                    ContentUnavailableView(
-                        "Requires Connection",
-                        systemImage: "wifi.slash",
-                        description: Text("Connect to Tailscale to start a session")
-                    )
+                    ContentUnavailableView {
+                        Label("No Connection", systemImage: "wifi.slash")
+                    } description: {
+                        Text("Connect to Tailscale to start a session.")
+                    } actions: {
+                        Button("Check Again") {
+                            Task { await appState.checkConnection() }
+                        }
+                        .buttonStyle(.borderedProminent)
+                    }
                 } else if session == nil && !isStarting {
                     startScreen
                 } else if isStarting {
@@ -50,6 +56,14 @@ struct CardSessionView: View {
             }
             .navigationTitle("Cards")
             .navigationBarTitleDisplayMode(.inline)
+            .alert("Something went wrong", isPresented: Binding(
+                get: { errorMessage != nil },
+                set: { if !$0 { errorMessage = nil } }
+            )) {
+                Button("OK") { errorMessage = nil }
+            } message: {
+                Text(errorMessage ?? "")
+            }
         }
     }
 
@@ -84,9 +98,10 @@ struct CardSessionView: View {
         VStack(spacing: 16) {
             // Progress bar
             if let session {
-                ProgressView(value: Double(session.totalCards - (gradeResult != nil ? 1 : 0)),
-                             total: Double(session.totalCards))
+                ProgressView(value: Double(currentCardIndex), total: Double(session.totalCards))
+                    .tint(.linguaAccent)
                     .padding(.horizontal)
+                    .animation(.easeInOut(duration: 0.3), value: currentCardIndex)
             }
 
             // Card content — show Italian + English, with audio button
@@ -135,7 +150,9 @@ struct CardSessionView: View {
                     Task { await skipCard() }
                 }
                 .foregroundColor(.secondary)
-                .padding(.bottom)
+                .font(.subheadline)
+                .frame(minWidth: 44, minHeight: 44)
+                .padding(.bottom, 8)
             }
         }
         .padding()
@@ -236,6 +253,7 @@ struct CardSessionView: View {
             let response = try await APIClient.shared.startSession(source: "on_demand")
             session = response
             currentCard = response.firstCard
+            currentCardIndex = 0
             textAnswer = ""
             showingResult = false
         } catch {
@@ -268,6 +286,7 @@ struct CardSessionView: View {
     private func advanceToNextCard(_ result: APIClient.SubmitResponse) {
         if let next = result.nextCard {
             currentCard = next
+            currentCardIndex += 1
             textAnswer = ""
             selectedOption = nil
             showingResult = false
@@ -363,9 +382,17 @@ struct GradeResultView: View {
                 }
             }
 
-            Button("Continue", action: onContinue)
+            Button {
+                    onContinue()
+                } label: {
+                    Text(result.grade == "again" ? "Next Card →" : "Next Card →")
+                        .font(.headline)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 4)
+                }
                 .buttonStyle(.borderedProminent)
-                .frame(maxWidth: .infinity)
+                .tint(gradeColor)
+                .padding(.horizontal)
         }
         .padding()
     }
@@ -393,7 +420,7 @@ struct SessionCompleteView: View {
             }
             .padding()
             .background(Color.linguaSurface)
-            .cornerRadius(12)
+            .clipShape(.rect(cornerRadius: 12))
 
             HStack(spacing: 12) {
                 Button("Done", action: onDismiss)

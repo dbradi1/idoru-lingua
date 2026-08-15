@@ -10,7 +10,6 @@ struct HomeView: View {
     @State private var dueCards: [Card] = []
     @State private var isLoading = false
     @State private var activeSession: ActiveSession?
-    @State private var showSession = false
 
     var body: some View {
         NavigationStack {
@@ -28,7 +27,7 @@ struct HomeView: View {
                     // Active session resume
                     if let session = activeSession {
                         SessionResumeCard(session: session) {
-                            showSession = true
+                            NotificationCenter.default.post(name: .switchToCardsTab, object: nil)
                         }
                     }
 
@@ -69,14 +68,12 @@ struct HomeView: View {
                 .padding()
             }
             .navigationTitle("")
-            .navigationBarHidden(true)
+            .toolbar(.hidden, for: .navigationBar)
         }
         .task {
             await loadData()
         }
-        .sheet(isPresented: $showSession) {
-            CardSessionView()
-        }
+        
     }
 
     private func loadData() async {
@@ -99,7 +96,8 @@ struct HomeView: View {
     }
 
     private func startSession() {
-        showSession = true
+        // Switch to Cards tab — NotificationCenter or AppState can handle this
+        NotificationCenter.default.post(name: .switchToCardsTab, object: nil)
     }
 }
 
@@ -128,8 +126,7 @@ struct SessionResumeCard: View {
                 .buttonStyle(.bordered)
         }
         .padding()
-        .background(Color.linguaSurfaceLight)
-        .cornerRadius(12)
+        .background(Color.linguaSurfaceLight, in: .rect(cornerRadius: 12))
     }
 }
 
@@ -161,7 +158,6 @@ struct CityCard: View {
                 .foregroundColor(.secondary)
         }
         .padding()
-        .background(Color.linguaSurface)
-        .cornerRadius(12)
+        .background(Color.linguaSurface, in: .rect(cornerRadius: 12))
     }
 }
