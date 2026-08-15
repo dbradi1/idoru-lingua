@@ -1,8 +1,6 @@
 //  CardSessionView.swift
 //  Card review session — the core learning experience.
-//  Handles text, MC, and audio card types per Decision #9.
-//  Skip is FSRS-neutral per Decision #9.
-//  Per SOUL.md: warm, not perky. Concise feedback. Italian-first progression.
+//  Updated to warm light theme matching HomeView.
 
 import SwiftUI
 import AVFAudio
@@ -25,33 +23,29 @@ struct CardSessionView: View {
 
     var body: some View {
         NavigationStack {
-            VStack {
-                if !appState.isOnline {
-                    ContentUnavailableView {
-                        Label("No Connection", systemImage: "wifi.slash")
-                    } description: {
-                        Text("Connect to Tailscale to start a session.")
-                    } actions: {
-                        Button("Check Again") {
-                            Task { await appState.checkConnection() }
+            ZStack {
+                Color.linguaBackground
+                    .ignoresSafeArea()
+
+                VStack {
+                    if !appState.isOnline {
+                        offlineState
+                    } else if session == nil && !isStarting {
+                        startScreen
+                    } else if isStarting {
+                        ProgressView("Starting session...")
+                    } else if let card = currentCard {
+                        cardView(card)
+                    } else if sessionEnded, let summary = sessionSummary {
+                        SessionCompleteView(summary: summary) {
+                            session = nil
+                            currentCard = nil
+                            sessionEnded = false
+                            sessionSummary = nil
                         }
-                        .buttonStyle(.borderedProminent)
+                    } else {
+                        ProgressView()
                     }
-                } else if session == nil && !isStarting {
-                    startScreen
-                } else if isStarting {
-                    ProgressView("Starting session...")
-                } else if let card = currentCard {
-                    cardView(card)
-                } else if sessionEnded, let summary = sessionSummary {
-                    SessionCompleteView(summary: summary) {
-                        session = nil
-                        currentCard = nil
-                        sessionEnded = false
-                        sessionSummary = nil
-                    }
-                } else {
-                    ProgressView()
                 }
             }
             .navigationTitle("Cards")
@@ -67,84 +61,122 @@ struct CardSessionView: View {
         }
     }
 
+    // MARK: - Offline
+
+    private var offlineState: some View {
+        ContentUnavailableView {
+            Label("No Connection", systemImage: "wifi.slash")
+        } description: {
+            Text("Connect to Tailscale to start a session.")
+        } actions: {
+            Button("Check Again") {
+                Task { await appState.checkConnection() }
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(.linguaPrimary)
+        }
+    }
+
     // MARK: - Start screen
 
     private var startScreen: some View {
-        VStack(spacing: 24) {
-            Image(systemName: "rectangle.stack.fill.badge.plus")
-                .font(.system(size: 60))
-                .foregroundColor(.secondary)
+        VStack(spacing: 28) {
+            Spacer()
 
-            Text("Ready to practice?")
-                .font(.linguaHeading)
+            VStack(spacing: 12) {
+                Text("🇮🇹")
+                    .font(.system(size: 56))
+
+                Text("Ready to practice?")
+                    .font(.system(size: 24, weight: .bold, design: .rounded))
+
+                Text("Let's learn some Italian.")
+                    .font(.system(size: 16))
+                    .foregroundColor(.secondary)
+            }
 
             Button {
                 Task { await startSession() }
             } label: {
-                Text("Start Session")
-                    .font(.headline)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 14)
+                HStack {
+                    Image(systemName: "play.fill")
+                    Text("Start Session")
+                }
+                .font(.system(size: 17, weight: .semibold, design: .rounded))
+                .foregroundColor(.white)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 16)
             }
-            .buttonStyle(.borderedProminent)
+            .background(Color.linguaPrimary, in: .rect(cornerRadius: 16))
             .padding(.horizontal, 40)
+
+            Spacer()
         }
-        .padding()
     }
 
     // MARK: - Card view
 
     private func cardView(_ card: Card) -> some View {
-        VStack(spacing: 16) {
+        VStack(spacing: 0) {
             // Progress bar
             if let session {
                 ProgressView(value: Double(currentCardIndex), total: Double(session.totalCards))
-                    .tint(.linguaAccent)
-                    .padding(.horizontal)
+                    .tint(.linguaPrimary)
+                    .padding(.horizontal, 24)
+                    .padding(.top, 16)
                     .animation(.easeInOut(duration: 0.3), value: currentCardIndex)
             }
 
-            // Card content — show Italian + English, with audio button
+            // Card
             VStack(spacing: 16) {
+                // Italian text + audio
                 HStack(spacing: 12) {
                     Text(card.italianText)
                         .font(.linguaCard)
                         .multilineTextAlignment(.center)
-                    
+
                     Button {
                         Task { await playAudio(for: card.id) }
                     } label: {
                         Image(systemName: isPlayingAudio ? "speaker.wave.2.fill" : "speaker.wave.1.fill")
                             .font(.title2)
-                            .foregroundColor(.linguaAccent)
+                            .foregroundColor(.linguaPrimary)
                     }
                 }
 
                 Text(card.englishText)
                     .font(.linguaTranslation)
                     .multilineTextAlignment(.center)
+                    .foregroundColor(.secondary)
 
-                // Card type badge
                 Text(card.cardType.uppercased())
                     .font(.linguaBadge)
                     .padding(.horizontal, 12)
                     .padding(.vertical, 4)
-                    .background(Color.linguaAccent.opacity(0.2))
-                    .cornerRadius(8)
+                    .background(Color.linguaPrimary.opacity(0.1), in: .rect(cornerRadius: 8))
             }
+            .frame(maxWidth: .infinity)
             .padding(.vertical, 40)
+            .padding(.horizontal, 24)
+            .background(Color.linguaSurface, in: .rect(cornerRadius: 20))
+            .shadow(color: .black.opacity(0.04), radius: 8, y: 2)
+            .padding(.horizontal, 20)
+            .padding(.top, 20)
 
+            // Result or input
             if showingResult, let result = gradeResult {
-                // Grade result
                 GradeResultView(result: result) {
                     advanceToNextCard(result)
                 }
+                .padding(.horizontal, 20)
+                .padding(.top, 16)
             } else {
-                // Answer input based on card type
                 answerInput(for: card)
+                    .padding(.horizontal, 20)
+                    .padding(.top, 16)
             }
 
-            // Skip button
+            // Skip
             if !showingResult {
                 Button("Skip") {
                     Task { await skipCard() }
@@ -154,8 +186,9 @@ struct CardSessionView: View {
                 .frame(minWidth: 44, minHeight: 44)
                 .padding(.bottom, 8)
             }
+
+            Spacer()
         }
-        .padding()
     }
 
     // MARK: - Answer input
@@ -163,15 +196,21 @@ struct CardSessionView: View {
     @ViewBuilder
     private func answerInput(for card: Card) -> some View {
         switch card.cardType {
-        case "vocab", "phrase":
-            // Text input
+        case "vocab", "phrase", "grammar":
             VStack(spacing: 12) {
+                if card.cardType == "grammar", let note = card.grammarNote, !note.isEmpty {
+                    Text("💡 \(note)")
+                        .font(.system(size: 13))
+                        .foregroundColor(.secondary)
+                }
+
                 Text("Type the Italian phrase above:")
-                    .font(.linguaCaption)
+                    .font(.system(size: 13, weight: .medium))
                     .foregroundColor(.secondary)
+
                 TextField("Type your answer...", text: $textAnswer)
                     .textFieldStyle(.roundedBorder)
-                    .font(.body)
+                    .font(.system(size: 17))
                     .autocorrectionDisabled()
                     .textInputAutocapitalization(.never)
 
@@ -179,66 +218,37 @@ struct CardSessionView: View {
                     Task { await submitText() }
                 } label: {
                     Text("Submit")
-                        .font(.headline)
+                        .font(.system(size: 17, weight: .semibold, design: .rounded))
+                        .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 14)
                 }
-                .buttonStyle(.borderedProminent)
+                .background(textAnswer.isEmpty ? Color.gray.opacity(0.3) : Color.linguaPrimary, in: .rect(cornerRadius: 14))
                 .disabled(textAnswer.isEmpty)
             }
-            .padding(.horizontal)
-
-        case "grammar":
-            // Text input with explanation hint
-            VStack(spacing: 12) {
-                Text("Type the Italian phrase above:")
-                    .font(.linguaCaption)
-                    .foregroundColor(.secondary)
-                if let note = card.grammarNote, !note.isEmpty {
-                    Text("💡 \(note)")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
-
-                TextField("Type your answer...", text: $textAnswer)
-                    .textFieldStyle(.roundedBorder)
-                    .font(.body)
-                    .autocorrectionDisabled()
-
-                Button {
-                    Task { await submitText() }
-                } label: {
-                    Text("Submit")
-                        .font(.headline)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 14)
-                }
-                .buttonStyle(.borderedProminent)
-                .disabled(textAnswer.isEmpty)
-            }
-            .padding(.horizontal)
 
         case "pronunciation":
-            // Audio recording (TODO: AVAudioEngine integration)
             VStack(spacing: 12) {
                 Button {
                     // TODO: Record audio and submit
                 } label: {
-                    Label("Record", systemImage: "mic.fill")
-                        .font(.headline)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 14)
+                    HStack {
+                        Image(systemName: "mic.fill")
+                        Text("Record")
+                    }
+                    .font(.system(size: 17, weight: .semibold, design: .rounded))
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 14)
                 }
-                .buttonStyle(.borderedProminent)
+                .background(Color.linguaPrimary, in: .rect(cornerRadius: 14))
 
                 Text("Pronunciation scoring coming soon")
-                    .font(.caption)
+                    .font(.system(size: 13))
                     .foregroundColor(.secondary)
             }
-            .padding(.horizontal)
 
         default:
-            // MC fallback
             Text("Tap to submit")
                 .font(.caption)
                 .foregroundColor(.secondary)
@@ -292,7 +302,6 @@ struct CardSessionView: View {
             showingResult = false
             gradeResult = nil
         } else {
-            // Session complete
             Task { await endSession() }
         }
     }
@@ -303,7 +312,6 @@ struct CardSessionView: View {
             let url = try await APIClient.shared.getCardAudio(cardId: cardId)
             audioPlayer = try AVAudioPlayer(contentsOf: url)
             audioPlayer?.play()
-            // Reset icon when playback finishes
             DispatchQueue.main.asyncAfter(deadline: .now() + (audioPlayer?.duration ?? 2.0)) {
                 isPlayingAudio = false
             }
@@ -320,7 +328,6 @@ struct CardSessionView: View {
             sessionEnded = true
             currentCard = nil
         } catch {
-            // Session might already be auto-completed
             sessionEnded = true
             currentCard = nil
         }
@@ -333,7 +340,7 @@ struct GradeResultView: View {
     let result: APIClient.SubmitResponse
     let onContinue: () -> Void
 
-    var gradeColor: Color {
+    private var gradeColor: Color {
         switch result.grade {
         case "again": return .linguaAgain
         case "hard": return .linguaHard
@@ -343,7 +350,7 @@ struct GradeResultView: View {
         }
     }
 
-    var gradeEmoji: String {
+    private var gradeEmoji: String {
         switch result.grade {
         case "again": return "✗"
         case "hard": return "◐"
@@ -354,17 +361,17 @@ struct GradeResultView: View {
     }
 
     var body: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: 14) {
             Text(gradeEmoji)
-                .font(.system(size: 48))
+                .font(.system(size: 44))
                 .foregroundColor(gradeColor)
 
             Text(result.grade.capitalized)
-                .font(.linguaHeading)
+                .font(.system(size: 20, weight: .bold, design: .rounded))
                 .foregroundColor(gradeColor)
 
             Text("Next review: \(result.nextInterval)")
-                .font(.linguaCaption)
+                .font(.system(size: 13, weight: .medium))
                 .foregroundColor(.secondary)
 
             if let pronunciation = result.pronunciation {
@@ -383,18 +390,19 @@ struct GradeResultView: View {
             }
 
             Button {
-                    onContinue()
-                } label: {
-                    Text(result.grade == "again" ? "Next Card →" : "Next Card →")
-                        .font(.headline)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 4)
-                }
-                .buttonStyle(.borderedProminent)
-                .tint(gradeColor)
-                .padding(.horizontal)
+                onContinue()
+            } label: {
+                Text("Next Card →")
+                    .font(.system(size: 17, weight: .semibold, design: .rounded))
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 14)
+            }
+            .background(gradeColor, in: .rect(cornerRadius: 14))
         }
-        .padding()
+        .padding(20)
+        .background(Color.linguaSurface, in: .rect(cornerRadius: 20))
+        .shadow(color: .black.opacity(0.04), radius: 8, y: 2)
     }
 }
 
@@ -405,12 +413,17 @@ struct SessionCompleteView: View {
     let onDismiss: () -> Void
 
     var body: some View {
-        VStack(spacing: 20) {
-            Text("Session Complete! 🎉")
-                .font(.linguaDisplay)
+        VStack(spacing: 24) {
+            Spacer()
 
-            VStack(spacing: 8) {
-                StatRow(label: "Total", value: "\(summary.totalCards)")
+            Text("🎉")
+                .font(.system(size: 56))
+
+            Text("Session Complete!")
+                .font(.system(size: 28, weight: .bold, design: .rounded))
+
+            VStack(spacing: 10) {
+                StatRow(label: "Total", value: "\(summary.totalCards)", color: .primary)
                 StatRow(label: "Good", value: "\(summary.good)", color: .linguaGood)
                 StatRow(label: "Hard", value: "\(summary.hard)", color: .linguaHard)
                 StatRow(label: "Again", value: "\(summary.again)", color: .linguaAgain)
@@ -418,17 +431,25 @@ struct SessionCompleteView: View {
                     StatRow(label: "Easy", value: "\(summary.easy)", color: .linguaEasy)
                 }
             }
-            .padding()
-            .background(Color.linguaSurface)
-            .clipShape(.rect(cornerRadius: 12))
+            .padding(20)
+            .background(Color.linguaSurface, in: .rect(cornerRadius: 16))
+            .shadow(color: .black.opacity(0.04), radius: 8, y: 2)
+            .padding(.horizontal, 40)
 
-            HStack(spacing: 12) {
-                Button("Done", action: onDismiss)
-                    .buttonStyle(.bordered)
+            Button {
+                onDismiss()
+            } label: {
+                Text("Done")
+                    .font(.system(size: 17, weight: .semibold, design: .rounded))
+                    .foregroundColor(.white)
                     .frame(maxWidth: .infinity)
+                    .padding(.vertical, 14)
             }
+            .background(Color.linguaPrimary, in: .rect(cornerRadius: 14))
+            .padding(.horizontal, 40)
+
+            Spacer()
         }
-        .padding()
     }
 }
 

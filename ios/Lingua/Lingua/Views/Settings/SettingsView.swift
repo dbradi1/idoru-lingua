@@ -1,7 +1,6 @@
 //  SettingsView.swift
-//  Settings tab — API key, server-side settings, app-local preferences.
-//  Per Decision #9: 5 server-side settings via API, 6 app-local via UserDefaults.
-//  Per Decision #28: Bearer auth via API key stored in Keychain (UserDefaults for dev).
+//  Settings tab — API key, server settings, app preferences.
+//  Light warm theme matching HomeView.
 
 import SwiftUI
 
@@ -12,7 +11,7 @@ struct SettingsView: View {
     @State private var dailyCap: Int = 20
     @State private var notificationTime = "08:00"
     @State private var sessionTimeout: Int = 10
-    @State private var audioVoice = "it-IT-LunaNeural"
+    @State private var audioVoice = "it-IT-IsabellaNeural"
     @State private var audioRate: Double = 1.0
     @State private var hapticFeedback = true
     @State private var fontSize = "medium"
@@ -22,63 +21,38 @@ struct SettingsView: View {
 
     var body: some View {
         NavigationStack {
-            Form {
-                Section("Authentication") {
-                    SecureField("API Key", text: $apiKey)
-                        .autocorrectionDisabled()
-                        .textInputAutocapitalization(.never)
-                    Button("Save Key") {
-                        UserDefaults.standard.set(apiKey, forKey: "lingua_api_key")
-                        appState.apiKey = apiKey
-                        savedMessage = true
-                    }
-                    .disabled(apiKey.isEmpty)
-                }
+            ZStack {
+                Color.linguaBackground
+                    .ignoresSafeArea()
 
-                Section("Server Settings") {
-                    Stepper("Daily card cap: \(dailyCap)", value: $dailyCap, in: 5...50)
-                    TextField("Notification time", text: $notificationTime)
-                    Stepper("Session timeout: \(sessionTimeout) min", value: $sessionTimeout, in: 5...30)
-                    TextField("Audio voice", text: $audioVoice)
-                    HStack {
-                        Text("Audio rate")
-                        Slider(value: $audioRate, in: 0.5...2.0, step: 0.1)
-                        Text(String(format: "%.1fx", audioRate))
-                            .frame(width: 40)
-                    }
+                ScrollView {
+                    VStack(spacing: 16) {
+                        // Connection status
+                        statusCard
+                            .padding(.horizontal, 20)
 
-                    Button(saving ? "Saving..." : "Save Settings") {
-                        Task { await saveSettings() }
-                    }
-                    .disabled(saving)
-                }
+                        // API Key
+                        apiKeyCard
+                            .padding(.horizontal, 20)
 
-                Section("App Preferences") {
-                    Toggle("Haptic feedback", isOn: $hapticFeedback)
-                    Toggle("Auto-play pronunciation", isOn: $autoPlayPronunciation)
-                    Picker("Font size", selection: $fontSize) {
-                        Text("Small").tag("small")
-                        Text("Medium").tag("medium")
-                        Text("Large").tag("large")
-                    }
-                }
+                        // Server settings
+                        serverSettingsCard
+                            .padding(.horizontal, 20)
 
-                Section("About") {
-                    HStack {
-                        Text("Version")
-                        Spacer()
-                        Text("0.1.0")
-                            .foregroundColor(.secondary)
+                        // App preferences
+                        appPreferencesCard
+                            .padding(.horizontal, 20)
+
+                        // About
+                        aboutCard
+                            .padding(.horizontal, 20)
+                            .padding(.bottom, 32)
                     }
-                    HStack {
-                        Text("Server")
-                        Spacer()
-                        Text(appState.isOnline ? "Connected" : "Offline")
-                            .foregroundColor(appState.isOnline ? .green : .red)
-                    }
+                    .padding(.top, 20)
                 }
             }
             .navigationTitle("Settings")
+            .navigationBarTitleDisplayMode(.large)
         }
         .onAppear {
             apiKey = UserDefaults.standard.string(forKey: "lingua_api_key") ?? ""
@@ -87,19 +61,176 @@ struct SettingsView: View {
             autoPlayPronunciation = UserDefaults.standard.bool(forKey: "lingua_auto_play_pron")
             Task { await loadSettings() }
         }
-        .onChange(of: hapticFeedback) {
-            UserDefaults.standard.set(hapticFeedback, forKey: "lingua_haptic")
-        }
-        .onChange(of: fontSize) {
-            UserDefaults.standard.set(fontSize, forKey: "lingua_font_size")
-        }
-        .onChange(of: autoPlayPronunciation) {
-            UserDefaults.standard.set(autoPlayPronunciation, forKey: "lingua_auto_play_pron")
-        }
-        .alert("Saved", isPresented: $savedMessage) {
-            Button("OK") {}
-        }
+        .onChange(of: hapticFeedback) { UserDefaults.standard.set(hapticFeedback, forKey: "lingua_haptic") }
+        .onChange(of: fontSize) { UserDefaults.standard.set(fontSize, forKey: "lingua_font_size") }
+        .onChange(of: autoPlayPronunciation) { UserDefaults.standard.set(autoPlayPronunciation, forKey: "lingua_auto_play_pron") }
+        .alert("Saved", isPresented: $savedMessage) { Button("OK") {} }
     }
+
+    // MARK: - Cards
+
+    private var statusCard: some View {
+        HStack {
+            Image(systemName: appState.isOnline ? "wifi" : "wifi.slash")
+                .font(.system(size: 20))
+                .foregroundColor(appState.isOnline ? .linguaGood : .linguaAgain)
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Server")
+                    .font(.system(size: 16, weight: .semibold, design: .rounded))
+                Text(appState.isOnline ? "Connected via Tailscale" : "Offline")
+                    .font(.system(size: 13))
+                    .foregroundColor(.secondary)
+            }
+            Spacer()
+        }
+        .padding(16)
+        .background(Color.linguaSurface, in: .rect(cornerRadius: 16))
+        .shadow(color: .black.opacity(0.04), radius: 6, y: 2)
+    }
+
+    private var apiKeyCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("API Key")
+                .font(.system(size: 17, weight: .semibold, design: .rounded))
+
+            SecureField("Enter API key...", text: $apiKey)
+                .textFieldStyle(.roundedBorder)
+                .autocorrectionDisabled()
+                .textInputAutocapitalization(.never)
+
+            Button {
+                UserDefaults.standard.set(apiKey, forKey: "lingua_api_key")
+                appState.apiKey = apiKey
+                savedMessage = true
+            } label: {
+                Text("Save Key")
+                    .font(.system(size: 15, weight: .semibold, design: .rounded))
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+            }
+            .background(apiKey.isEmpty ? Color.gray.opacity(0.3) : Color.linguaPrimary, in: .rect(cornerRadius: 12))
+            .disabled(apiKey.isEmpty)
+        }
+        .padding(16)
+        .background(Color.linguaSurface, in: .rect(cornerRadius: 16))
+        .shadow(color: .black.opacity(0.04), radius: 6, y: 2)
+    }
+
+    private var serverSettingsCard: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text("Server Settings")
+                .font(.system(size: 17, weight: .semibold, design: .rounded))
+
+            HStack {
+                Text("Daily card cap")
+                Spacer()
+                Stepper("\(dailyCap)", value: $dailyCap, in: 5...50)
+                    .tint(.linguaPrimary)
+            }
+
+            HStack {
+                Text("Notification time")
+                Spacer()
+                TextField("08:00", text: $notificationTime)
+                    .multilineTextAlignment(.trailing)
+                    .frame(width: 80)
+            }
+
+            HStack {
+                Text("Session timeout")
+                Spacer()
+                Stepper("\(sessionTimeout) min", value: $sessionTimeout, in: 5...30)
+                    .tint(.linguaPrimary)
+            }
+
+            HStack {
+                Text("Audio rate")
+                Spacer()
+                Slider(value: $audioRate, in: 0.5...2.0, step: 0.1)
+                    .tint(.linguaPrimary)
+                    .frame(width: 120)
+                Text(String(format: "%.1fx", audioRate))
+                    .frame(width: 40)
+                    .font(.system(size: 14, weight: .medium))
+            }
+
+            Button {
+                Task { await saveSettings() }
+            } label: {
+                Text(saving ? "Saving..." : "Save Settings")
+                    .font(.system(size: 15, weight: .semibold, design: .rounded))
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+            }
+            .background(saving ? Color.gray.opacity(0.3) : Color.linguaPrimary, in: .rect(cornerRadius: 12))
+            .disabled(saving)
+        }
+        .padding(16)
+        .background(Color.linguaSurface, in: .rect(cornerRadius: 16))
+        .shadow(color: .black.opacity(0.04), radius: 6, y: 2)
+    }
+
+    private var appPreferencesCard: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text("App Preferences")
+                .font(.system(size: 17, weight: .semibold, design: .rounded))
+
+            Toggle(isOn: $hapticFeedback) {
+                Text("Haptic feedback")
+                    .font(.system(size: 15))
+            }
+            .tint(.linguaPrimary)
+
+            Toggle(isOn: $autoPlayPronunciation) {
+                Text("Auto-play pronunciation")
+                    .font(.system(size: 15))
+            }
+            .tint(.linguaPrimary)
+
+            HStack {
+                Text("Font size")
+                Spacer()
+                Picker("", selection: $fontSize) {
+                    Text("Small").tag("small")
+                    Text("Medium").tag("medium")
+                    Text("Large").tag("large")
+                }
+                .pickerStyle(.segmented)
+                .frame(width: 180)
+                .tint(.linguaPrimary)
+            }
+        }
+        .padding(16)
+        .background(Color.linguaSurface, in: .rect(cornerRadius: 16))
+        .shadow(color: .black.opacity(0.04), radius: 6, y: 2)
+    }
+
+    private var aboutCard: some View {
+        VStack(spacing: 10) {
+            HStack {
+                Text("Version")
+                    .foregroundColor(.secondary)
+                Spacer()
+                Text("0.1.0")
+                    .fontWeight(.medium)
+            }
+            HStack {
+                Text("Server")
+                Spacer()
+                Text(appState.isOnline ? "Connected" : "Offline")
+                    .foregroundColor(appState.isOnline ? .linguaGood : .linguaAgain)
+                    .fontWeight(.medium)
+            }
+        }
+        .font(.system(size: 15))
+        .padding(16)
+        .background(Color.linguaSurface, in: .rect(cornerRadius: 16))
+        .shadow(color: .black.opacity(0.04), radius: 6, y: 2)
+    }
+
+    // MARK: - Actions
 
     private func loadSettings() async {
         do {
@@ -116,21 +247,10 @@ struct SettingsView: View {
     private func saveSettings() async {
         saving = true
         var updates: [String: AnyCodable] = [:]
-        if dailyCap != serverSettings?.dailyReviewCap {
-            updates["daily_review_cap"] = AnyCodable(dailyCap)
-        }
-        if notificationTime != serverSettings?.notificationTime {
-            updates["notification_time"] = AnyCodable(notificationTime)
-        }
-        if sessionTimeout != serverSettings?.sessionTimeoutMinutes {
-            updates["session_timeout_minutes"] = AnyCodable(sessionTimeout)
-        }
-        if audioVoice != serverSettings?.audioVoice {
-            updates["audio_voice"] = AnyCodable(audioVoice)
-        }
-        if audioRate != serverSettings?.audioRate {
-            updates["audio_rate"] = AnyCodable(audioRate)
-        }
+        if dailyCap != serverSettings?.dailyReviewCap { updates["daily_review_cap"] = AnyCodable(dailyCap) }
+        if notificationTime != serverSettings?.notificationTime { updates["notification_time"] = AnyCodable(notificationTime) }
+        if sessionTimeout != serverSettings?.sessionTimeoutMinutes { updates["session_timeout_minutes"] = AnyCodable(sessionTimeout) }
+        if audioRate != serverSettings?.audioRate { updates["audio_rate"] = AnyCodable(audioRate) }
 
         if !updates.isEmpty {
             do {
@@ -139,7 +259,6 @@ struct SettingsView: View {
                 dailyCap = updated.dailyReviewCap
                 notificationTime = updated.notificationTime
                 sessionTimeout = updated.sessionTimeoutMinutes
-                audioVoice = updated.audioVoice
                 audioRate = updated.audioRate
                 savedMessage = true
             } catch {}
