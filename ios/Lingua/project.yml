@@ -43,3 +43,8 @@ targets:
             100.66.129.43:
               NSExceptionAllowsInsecureHTTPLoads: true
               NSIncludesSubdomains: false
+        CFBundleURLTypes:
+          - CFBundleURLName: com.dbradi.lingua
+            CFBundleURLSchemes:
+              - lingua
+        UIApplicationSupportsIndirectInputEvents: true

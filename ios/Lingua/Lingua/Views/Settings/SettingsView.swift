@@ -21,6 +21,7 @@ struct SettingsView: View {
     @State private var soundEffects = true
     @State private var saving = false
     @State private var savedMessage = false
+    @State private var deepLinkSaved = false
 
     // Achievement data (matching Figma)
     private let achievementData: [(icon: String, title: String, desc: String, done: Bool)] = [
@@ -87,6 +88,11 @@ struct SettingsView: View {
         .onChange(of: fontSize) { UserDefaults.standard.set(fontSize, forKey: "lingua_font_size") }
         .onChange(of: autoPlayPronunciation) { UserDefaults.standard.set(autoPlayPronunciation, forKey: "lingua_auto_play_pron") }
         .alert("Saved", isPresented: $savedMessage) { Button("OK") {} }
+        .alert("API Key Added", isPresented: $deepLinkSaved) { Button("OK") {} }
+        .onReceive(NotificationCenter.default.publisher(for: .deepLinkAPIKeyReceived)) { _ in
+            apiKey = UserDefaults.standard.string(forKey: "lingua_api_key") ?? ""
+            deepLinkSaved = true
+        }
     }
 
     // MARK: - Profile Card
